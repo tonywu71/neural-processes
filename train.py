@@ -1,12 +1,14 @@
 import os
 import argparse
 from datetime import datetime
+
 import tensorflow as tf
-import tensorflow_datasets as tfds
 import tensorflow_probability as tfp
 
+from dataloader.load_regression_data import load_regression_data
+from dataloader.load_mnist import load_mnist
 from model import ConditionalNeuralProcess
-from utils import PlotCallback, get_gp_curve_generator
+from utils import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
@@ -23,35 +25,10 @@ args = parser.parse_args()
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 
+
 if args.task == 'mnist':
-    # Dataset
-    mnist = tfds.load('mnist')
-    train_ds, test_ds = mnist['train'], mnist['test']
-
-    def encode(element):
-        # element should be already batched
-        img = tf.cast(element['image'], tf.float32) / 255.
-        batch_size = tf.shape(img)[0]
-        num_context = tf.random.uniform(
-            shape=[], minval=10, maxval=100, dtype=tf.int32)
-        context_x = tf.random.uniform(
-            shape=(batch_size, num_context, 2),
-            minval=0, maxval=27, dtype=tf.int32)
-        context_y = tf.gather_nd(img, context_x, batch_dims=1)  # TODO check
-        context_x = tf.cast(context_x, tf.float32)  /27.  # normalize
-        cols, rows = tf.meshgrid(tf.range(28.), tf.transpose(tf.range(28.)))
-        grid = tf.stack([rows, cols], axis=-1)  # (28, 28, 2)
-        batch_grid = tf.tile(
-            tf.expand_dims(grid, axis=0),
-            [batch_size, 1, 1, 1])  # (batch_size, 28, 28, 2)
-        target_x = tf.reshape(
-            batch_grid, (batch_size, 28 * 28, 2)) / 27.  # normalize
-        target_y = tf.reshape(img, (batch_size, 28 * 28, 1))
-        return (context_x, context_y, target_x), target_y
-
-    train_ds = train_ds.batch(BATCH_SIZE).map(encode)
-    test_ds = test_ds.batch(1).map(encode)
-
+    train_ds, test_ds = load_mnist(batch_size=BATCH_SIZE)
+    
     # Model architecture
     encoder_dims = [500, 500, 500, 500]
     decoder_dims = [500, 500, 500, 2]
@@ -63,21 +40,7 @@ if args.task == 'mnist':
         return -dist.log_prob(target_y)
 
 else: # args.task == regression
-    train_ds = tf.data.Dataset.from_generator(
-        get_gp_curve_generator(
-            iterations=250,
-            batch_size=BATCH_SIZE,
-            max_num_context=10,
-            testing=False),
-        output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-    )
-    test_ds = tf.data.Dataset.from_generator(
-        get_gp_curve_generator(
-            iterations=250,
-            batch_size=1,
-            testing=True),
-        output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-    )
+    train_ds, test_ds = load_regression_data(batch_size=BATCH_SIZE)
 
     # Model architecture
     encoder_dims = [128, 128, 128, 128]
