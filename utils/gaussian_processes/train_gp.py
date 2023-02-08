@@ -75,11 +75,15 @@ def train_gp(df_observed: pd.DataFrame,
     batch_nlls = []  # Batch NLL for plotting
     full_ll = []  # Full data NLL for plotting
     
-    for i, (index_points_batch, observations_batch) in tqdm(
-            enumerate(islice(batched_dataset, epochs)), total=epochs):
+    pbar = tqdm(enumerate(islice(batched_dataset, epochs)), total=epochs)
+    
+    for i, (index_points_batch, observations_batch) in pbar:
         # Run optimization for single batch
         with tf.GradientTape() as tape:
             loss = gp_loss_fn(index_points_batch, observations_batch)
+        
+        pbar.set_description(f"loss = {loss.numpy():.3f}")
+        
         grads = tape.gradient(loss, trainable_variables)
         optimizer.apply_gradients(zip(grads, trainable_variables))
         batch_nlls.append((i, loss.numpy()))
