@@ -48,6 +48,7 @@ def plot_learning_curve(nb_iterations: int, batch_nlls, full_ll):
 def train_gp(df_observed: pd.DataFrame,
              x_col: str,
              y_col: str,
+             epochs: int,
              batch_size: int=128,
              plot: bool=False) -> Tuple[
                  Callable,
@@ -73,9 +74,9 @@ def train_gp(df_observed: pd.DataFrame,
     # Training loop
     batch_nlls = []  # Batch NLL for plotting
     full_ll = []  # Full data NLL for plotting
-    nb_iterations = 10001
+    
     for i, (index_points_batch, observations_batch) in tqdm(
-            enumerate(islice(batched_dataset, nb_iterations)), total=nb_iterations):
+            enumerate(islice(batched_dataset, epochs)), total=epochs):
         # Run optimization for single batch
         with tf.GradientTape() as tape:
             loss = gp_loss_fn(index_points_batch, observations_batch)
@@ -91,7 +92,7 @@ def train_gp(df_observed: pd.DataFrame,
             full_ll.append((i, ll.numpy()))
     
     if plot:
-        plot_learning_curve(nb_iterations, batch_nlls, full_ll)
+        plot_learning_curve(epochs, batch_nlls, full_ll)
     
     return mean_fn, kernel, variables
 

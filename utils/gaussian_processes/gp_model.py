@@ -25,10 +25,11 @@ class GPModel():
         self.variables: Optional[Dict[str, tfp.util.TransformedVariable]] = None
     
     
-    def fit(self, df_observed: pd.DataFrame, x_col: str, y_col: str):
+    def fit(self, df_observed: pd.DataFrame, x_col: str, y_col: str, epochs: int):
         self.df_observed = df_observed
         self.ds_observed = get_ds_observed(df_observed, x_col=x_col, y_col=y_col)
         self.mean_fn, self.kernel, self.variables = train_gp(df_observed, x_col, y_col,
+                                                             epochs=epochs,
                                                              batch_size=self.batch_size,
                                                              plot=False)
         self.is_fitted = True
@@ -36,7 +37,7 @@ class GPModel():
     
     def get_gp_posterior_predict(self, df_predict: pd.DataFrame, x_col: str) -> tfp.distributions.GaussianProcessRegressionModel:
         assert self.is_fitted, "Model is not fitted yet."
-        assert df_predict.columns in self.df_observed.columns, "Column names do not match."
+        assert set(df_predict.columns).issubset(self.df_observed.columns), "Column names do not match."
         
         # Posterior GP using fitted kernel and observed data
         gp_posterior_predict = tfd.GaussianProcessRegressionModel(
