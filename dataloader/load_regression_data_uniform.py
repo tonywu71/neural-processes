@@ -1,8 +1,6 @@
 from functools import partial
 from typing import Tuple, Callable, Iterator
 
-import numpy as np
-
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -11,8 +9,12 @@ tfd = tfp.distributions
 from dataloader.regression_data_generator_base import RegressionDataGeneratorBase
 
 
-def gen(batch_size, iterations, kernel_length_scale,
-        min_num_context, max_num_context, min_num_target,
+def gen(batch_size,
+        iterations,
+        kernel_length_scale,
+        min_num_context,
+        max_num_context,
+        min_num_target,
         testing) -> Iterator[Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]]:        
     kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
     
@@ -70,71 +72,48 @@ def gen(batch_size, iterations, kernel_length_scale,
         yield (context_x, context_y, target_x), target_y
 
 
-def get_gp_curve_generator_from_uniform(iterations: int=10000,
-                                        batch_size: int=64,
-                                        kernel_length_scale: float=0.4,
-                                        min_num_context: int=3,
-                                        max_num_context: int=10,
-                                        min_num_target: int=2,
-                                        testing: bool=False) -> Callable:
-    
-    return partial(gen,
-                   batch_size=batch_size,
-                   iterations=iterations,
-                   kernel_length_scale=kernel_length_scale,
-                   min_num_context=min_num_context,
-                   max_num_context=max_num_context,
-                   min_num_target=min_num_target,
-                   testing=testing)
-
-
-def load_regression_data_from_uniform(iterations: int=250,
-                                      batch_size: int=32,
-                                      min_num_context: int=3,
-                                      max_num_context: int=10,
-                                      min_num_target: int=2) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
-    train_ds = tf.data.Dataset.from_generator(
-        get_gp_curve_generator_from_uniform(
-            iterations=iterations,
-            batch_size=batch_size,
-            min_num_context=min_num_context,
-            max_num_context=max_num_context,
-            min_num_target=min_num_target,
-            testing=False),
-        output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-    )
-    test_ds = tf.data.Dataset.from_generator(
-        get_gp_curve_generator_from_uniform(
-            iterations=iterations,
-            batch_size=batch_size,
-            min_num_context=min_num_context,
-            max_num_context=max_num_context,
-            min_num_target=min_num_target,
-            testing=True),
-        output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-    )
-    
-    train_ds = train_ds.shuffle(buffer_size=10).prefetch(tf.data.experimental.AUTOTUNE)
-    test_ds = test_ds.prefetch(tf.data.experimental.AUTOTUNE)
-    
-    return train_ds, test_ds
-
-
-
 class RegressionDataGeneratorUniform(RegressionDataGeneratorBase):
     """Class that uses load_regression_data to create datasets.
     """
-    def __init__(self, iterations: int=250, batch_size: int=32,
-                 min_num_context: int=3, max_num_context: int=10, min_num_target: int=2):
+    def __init__(self,
+                 iterations: int=250,
+                 batch_size: int=32,
+                 min_num_context: int=3,
+                 max_num_context: int=10,
+                 min_num_target: int=2,
+                 kernel_length_scale: float=0.4):
         super().__init__(iterations=iterations, batch_size=batch_size)
         
         self.min_num_context = min_num_context
         self.max_num_context = max_num_context
         self.min_num_target = min_num_target
+        self.kernel_length_scale = kernel_length_scale
         
-        self.train_ds, self.test_ds = load_regression_data_from_uniform(
-            iterations=self.iterations,
-            batch_size=self.batch_size,
-            min_num_context=self.min_num_context,
-            max_num_context=self.max_num_context,
-            min_num_target=self.min_num_target)
+        self.train_ds, self.test_ds = self.load_regression_data()
+
+    
+    def get_gp_curve_generator_from_uniform(self, testing: bool=False) -> Callable:
+        return partial(gen,
+                       batch_size=self.batch_size,
+                       iterations=self.iterations,
+                       kernel_length_scale=self.kernel_length_scale,
+                       min_num_context=self.min_num_context,
+                       max_num_context=self.max_num_context,
+                       min_num_target=self.min_num_target,
+                       testing=testing)
+    
+    
+    def load_regression_data(self) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
+        train_ds = tf.data.Dataset.from_generator(
+            self.get_gp_curve_generator_from_uniform(testing=False),
+            output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
+        )
+        test_ds = tf.data.Dataset.from_generator(
+            self.get_gp_curve_generator_from_uniform(testing=True),
+            output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
+        )
+        
+        train_ds = train_ds.shuffle(buffer_size=10).prefetch(tf.data.experimental.AUTOTUNE)
+        test_ds = test_ds.prefetch(tf.data.experimental.AUTOTUNE)
+        
+        return train_ds, test_ds

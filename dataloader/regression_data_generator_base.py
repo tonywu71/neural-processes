@@ -1,5 +1,5 @@
-from typing import Optional
-from abc import ABC
+from typing import Optional, Tuple
+from abc import ABC, abstractmethod
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -18,6 +18,11 @@ class RegressionDataGeneratorBase(ABC):
         
         self.train_ds: Optional[tf.data.Dataset] = None
         self.test_ds: Optional[tf.data.Dataset] = None
+    
+    
+    @abstractmethod
+    def load_regression_data(self) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
+        pass
     
     
     @staticmethod

@@ -37,7 +37,7 @@ class GPModel():
         self.is_fitted = True
 
     
-    def get_gp_posterior_predict(self, df_predict: pd.DataFrame, x_col: str) -> tfp.distributions.GaussianProcessRegressionModel:
+    def get_gp_posterior_predict(self, df_predict: pd.DataFrame) -> tfp.distributions.GaussianProcessRegressionModel:
         assert self.is_fitted, "Model is not fitted yet."
         assert set(df_predict.columns).issubset(self.df_observed.columns), "Column names do not match."
         
@@ -45,7 +45,7 @@ class GPModel():
         gp_posterior_predict = tfd.GaussianProcessRegressionModel(
             mean_fn=self.mean_fn,
             kernel=self.kernel,
-            index_points=df_predict[x_col].values.reshape(-1, 1),
+            index_points=df_predict[self.x_col].values.reshape(-1, 1),
             observation_index_points=self.df_observed[self.x_col].values.reshape(-1, 1),
             observations=self.df_observed[self.y_col].values,
             observation_noise_variance=self.variables["observation_noise_variance"])
@@ -57,7 +57,7 @@ class GPModel():
         """Note: gp_posterior_predict is recreated at each call.
         For efficiency, use get_gp_posterior_predict() to get the posterior GP and
         then sample manually without this method."""
-        gp_posterior_predict = self.get_gp_posterior_predict(df_predict, x_col)
+        gp_posterior_predict = self.get_gp_posterior_predict(df_predict)
         return gp_posterior_predict.sample()
     
     
