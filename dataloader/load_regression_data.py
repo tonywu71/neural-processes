@@ -32,7 +32,7 @@ def gen(gp_model: GPModel,
         
         num_target = tf.random.uniform(shape=[],
                                     minval=min_num_target,
-                                    maxval=num_total_points,
+                                    maxval=num_total_points-num_context,
                                     dtype=tf.int32)
         
         x_values = tf.tile(tf.reshape(gp_posterior_predict.index_points,
@@ -47,8 +47,8 @@ def gen(gp_model: GPModel,
         target_y = tf.gather(y_values, idx[:num_target], axis=1)
         
         # Select the observations (randomly select num_context examples from x_values and y_values)
-        context_x = tf.gather(x_values, idx[num_target:num_context], axis=1)
-        context_y = tf.gather(y_values, idx[num_target:num_context], axis=1)
+        context_x = tf.gather(x_values, idx[num_target:num_target+num_context], axis=1)
+        context_y = tf.gather(y_values, idx[num_target:num_target+num_context], axis=1)
         
         yield (context_x, context_y, target_x), target_y
 
