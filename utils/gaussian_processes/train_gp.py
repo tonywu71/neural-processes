@@ -87,8 +87,8 @@ def train_gp(df_observed: pd.DataFrame,
         if i % 100 == 0:
             # Evaluate on all observed data
             ll = gp_loss_fn(
-                index_points=df_observed.Date.values.reshape(-1, 1),
-                observations=df_observed.CO2.values)
+                index_points=df_observed[x_col].values.reshape(-1, 1),
+                observations=df_observed[y_col].values)
             full_ll.append((i, ll.numpy()))
     
     if plot:
