@@ -1,6 +1,7 @@
 from functools import partial
-from turtle import pd
 from typing import Tuple, Callable, Iterator
+
+import pandas as pd
 
 import tensorflow as tf
 import tensorflow_probability as tfp
