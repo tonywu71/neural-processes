@@ -27,8 +27,10 @@ class GPModel():
     
     def fit(self, df_observed: pd.DataFrame, x_col: str, y_col: str, epochs: int):
         self.df_observed = df_observed
-        self.ds_observed = get_ds_observed(df_observed, x_col=x_col, y_col=y_col)
-        self.mean_fn, self.kernel, self.variables = train_gp(df_observed, x_col, y_col,
+        self.x_col = x_col
+        self.y_col = y_col
+        self.ds_observed = get_ds_observed(df_observed, x_col=self.x_col, y_col=self.y_col)
+        self.mean_fn, self.kernel, self.variables = train_gp(df_observed, self.x_col, self.y_col,
                                                              epochs=epochs,
                                                              batch_size=self.batch_size,
                                                              plot=False)
