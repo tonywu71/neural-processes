@@ -82,7 +82,7 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
         self.max_num_context = max_num_context
         self.min_num_target = min_num_target
         
-        assert min_num_context <= self.num_total_points <= max_num_context, f"min_num_context={min_num_context} must be <= num_total_points={self.num_total_points} <= max_num_context={max_num_context}"
+        assert min_num_context <= max_num_context <= self.num_total_points, f"min_num_context={min_num_context} must be <= max_num_context={max_num_context} <= num_total_points={self.num_total_points}"
         assert self.min_num_target <= self.num_total_points, f"min_num_target={self.min_num_target} must be <= num_total_points={self.num_total_points}"
         
         self.train_ds, self.test_ds = self.load_regression_data()
