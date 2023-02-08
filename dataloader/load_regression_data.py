@@ -23,12 +23,12 @@ def gen(gp_model: GPModel,
     gp_posterior_predict = gp_model.get_gp_posterior_predict(df_predict)
     
     for _ in range(iterations):
+        num_total_points = len(gp_posterior_predict.index_points)
+        
         num_context = tf.random.uniform(shape=[],
                             minval=min_num_context,
                             maxval=max_num_context,
                             dtype=tf.int32)
-        
-        num_total_points = len(gp_posterior_predict.index_points)
         
         num_target = tf.random.uniform(shape=[],
                                     minval=min_num_target,
@@ -43,12 +43,13 @@ def gen(gp_model: GPModel,
         # Select the targets which will consist of the context points
         # as well as some new target points
         idx = tf.random.shuffle(tf.range(num_total_points))
-        target_x = tf.gather(x_values, idx[:num_target], axis=1)
-        target_y = tf.gather(y_values, idx[:num_target], axis=1)
         
         # Select the observations (randomly select num_context examples from x_values and y_values)
-        context_x = tf.gather(x_values, idx[num_target:num_target+num_context], axis=1)
-        context_y = tf.gather(y_values, idx[num_target:num_target+num_context], axis=1)
+        context_x = tf.gather(x_values, idx[:num_context], axis=1)
+        context_y = tf.gather(y_values, idx[:num_context], axis=1)
+        
+        target_x = tf.gather(x_values, idx[:num_target+num_context], axis=1)
+        target_y = tf.gather(y_values, idx[:num_target+num_context], axis=1)
         
         yield (context_x, context_y, target_x), target_y
 
