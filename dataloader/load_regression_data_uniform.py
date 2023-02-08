@@ -6,9 +6,10 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-import matplotlib.pyplot as plt
-
 tfd = tfp.distributions
+
+from dataloader.regression_data_generator_base import RegressionDataGeneratorBase
+
 
 def gen(batch_size, iterations, kernel_length_scale,
         min_num_context, max_num_context, min_num_target,
@@ -59,7 +60,7 @@ def gen(batch_size, iterations, kernel_length_scale,
         else:
             # Select the targets which will consist of the context points
             # as well as some new target points
-            target_x = x_values[:, :num_target + num_context, :]
+            target_x = x_values[:, :num_target + num_context, :]  # Note: I think the second slicing is useless in the training scenario
             target_y = y_values[:, :num_target + num_context, :]
 
             # Select the observations
@@ -87,8 +88,11 @@ def get_gp_curve_generator_from_uniform(iterations: int=10000,
                    testing=testing)
 
 
-def load_regression_data(iterations: int=250, batch_size: int=32,
-                         min_num_context: int=3, max_num_context: int=10, min_num_target: int=2) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
+def load_regression_data_from_uniform(iterations: int=250,
+                                      batch_size: int=32,
+                                      min_num_context: int=3,
+                                      max_num_context: int=10,
+                                      min_num_target: int=2) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
     train_ds = tf.data.Dataset.from_generator(
         get_gp_curve_generator_from_uniform(
             iterations=iterations,
@@ -117,42 +121,20 @@ def load_regression_data(iterations: int=250, batch_size: int=32,
 
 
 
-class RegressionDataGenerator():
+class RegressionDataGeneratorUniform(RegressionDataGeneratorBase):
     """Class that uses load_regression_data to create datasets.
     """
     def __init__(self, iterations: int=250, batch_size: int=32,
                  min_num_context: int=3, max_num_context: int=10, min_num_target: int=2):
-        self.iterations = iterations
-        self.batch_size = batch_size
+        super().__init__(iterations=iterations, batch_size=batch_size)
+        
         self.min_num_context = min_num_context
         self.max_num_context = max_num_context
         self.min_num_target = min_num_target
         
-        self.train_ds, self.test_ds = load_regression_data(
-            iterations=iterations, batch_size=batch_size,
-            min_num_context=min_num_context,
-            max_num_context=max_num_context,
-            min_num_target=min_num_target)
-    
-    
-    @staticmethod
-    def plot_batch(context_x, context_y, target_x, target_y, figsize=(8, 5)):
-        context_x = context_x.numpy()
-        context_y = context_y.numpy()
-        target_x = target_x.numpy()
-        target_y = target_y.numpy()
-        
-        fig, ax = plt.subplots(figsize=figsize)
-        ax.scatter(target_x[0, :, 0], target_y[0, :, 0], c="blue", label='Target')
-        ax.scatter(context_x[0, :, 0], context_y[0, :, 0], marker="x", c="red", label='Observations')
-        ax.legend()
-
-        return fig, ax
-    
-    
-    def plot_random_batch(self, figsize=(8, 5)):
-        """Plot a random batch from the train_ds.
-        """
-        (context_x, context_y, target_x), target_y = next(iter(self.train_ds.take(1)))
-        fig, ax = RegressionDataGenerator.plot_batch(context_x, context_y, target_x, target_y, figsize=figsize)
-        return fig, ax
+        self.train_ds, self.test_ds = load_regression_data_from_uniform(
+            iterations=self.iterations,
+            batch_size=self.batch_size,
+            min_num_context=self.min_num_context,
+            max_num_context=self.max_num_context,
+            min_num_target=self.min_num_target)

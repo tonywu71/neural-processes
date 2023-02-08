@@ -5,7 +5,7 @@ from datetime import datetime
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from dataloader.load_regression_data import load_regression_data
+from dataloader.load_regression_data_uniform import load_regression_data
 from dataloader.load_mnist import load_mnist
 from model import ConditionalNeuralProcess
 from utils import PlotCallback
