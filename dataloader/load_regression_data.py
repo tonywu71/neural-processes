@@ -110,7 +110,7 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
             output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
         )
         
-        train_ds = train_ds.shuffle(buffer_size=10).prefetch(tf.data.experimental.AUTOTUNE)
+        train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)  # No need to shuffle as the data is already generated randomly
         test_ds = test_ds.prefetch(tf.data.experimental.AUTOTUNE)
         
         return train_ds, test_ds
