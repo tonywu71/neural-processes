@@ -7,6 +7,7 @@ import tensorflow_probability as tfp
 
 from dataloader.load_regression_data_uniform import RegressionDataGeneratorUniform
 from dataloader.load_mnist import load_mnist
+from dataloader.load_celeb import load_celeb
 from model import ConditionalNeuralProcess
 from utility import PlotCallback
 
@@ -17,7 +18,7 @@ tfd = tfp.distributions
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
 parser.add_argument('-b', '--batch', type=int, default=64, help='Batch size for training')
-parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression)')
+parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression|celeb)')
 
 args = parser.parse_args()
 
@@ -39,13 +40,26 @@ if args.task == 'mnist':
         dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(target_y)
 
-else: # args.task == regression
+elif args.task == 'regression':
     data_generator = RegressionDataGeneratorUniform()
     train_ds, test_ds = data_generator.load_regression_data(batch_size=BATCH_SIZE)
 
     # Model architecture
     encoder_dims = [128, 128, 128, 128]
     decoder_dims = [128, 128, 2]
+
+    def loss(target_y, pred_y):
+        # Get the distribution
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+        return -dist.log_prob(target_y)
+
+elif args.task == 'celeb':
+    train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE)
+
+    # Model architecture
+    encoder_dims = [500, 500, 500, 500]
+    decoder_dims = [500, 500, 500, 2]
 
     def loss(target_y, pred_y):
         # Get the distribution
