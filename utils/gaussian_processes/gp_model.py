@@ -1,4 +1,6 @@
 from typing import Callable, Optional, Dict
+
+import numpy as np
 import pandas as pd
 
 import tensorflow as tf
@@ -7,6 +9,8 @@ import tensorflow_probability as tfp
 tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
+
+import matplotlib.pyplot as plt
 
 from utils.gaussian_processes.train_gp import df_to_dataset, train_gp
 
@@ -73,5 +77,30 @@ class GPModel():
         posterior_mean_predict = gp_posterior_predict.mean()
         posterior_std_predict = gp_posterior_predict.stddev()
         
+        # Plot posterior mean and standard deviation
+        
+        
         # TODO: plot
         raise NotImplementedError("plot_from_predictions() not implemented yet.")
+
+
+def plot_mean_with_std(x: np.ndarray,
+                       mean: np.ndarray,
+                       std: np.ndarray,
+                       ax: Optional[plt.Axes]=None,
+                       label: Optional[str]=None,
+                       alpha: float=0.3) -> plt.Axes:
+    """Plot mean and standard deviation."""
+    if ax is None:
+        ax = plt.gca()
+    
+    # Plot mean
+    ax.plot(x, mean, label=label)
+    
+    # Plot standard deviation
+    ax.fill_between(x,
+                    mean - std,
+                    mean + std,
+                    alpha=alpha)
+    
+    return ax
