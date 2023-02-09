@@ -1,5 +1,6 @@
 # python 3.10.8
 numpy
+pandas
 tqdm
 matplotlib
 tensorflow==2.10
