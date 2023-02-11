@@ -6,7 +6,7 @@ from datetime import datetime
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from dataloader.load_regression_data_uniform import RegressionDataGeneratorUniform
+from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from model import ConditionalNeuralProcess
 from utility import PlotCallback
@@ -43,7 +43,7 @@ if args.task == 'mnist':
         return -dist.log_prob(target_y)
 
 else: # args.task == regression
-    data_generator = RegressionDataGeneratorUniform()
+    data_generator = RegressionDataGeneratorArbitraryGP()
     train_ds, test_ds = data_generator.load_regression_data(batch_size=BATCH_SIZE)
 
     # Model architecture
