@@ -30,8 +30,8 @@ def gen_from_arbitrary_gp(
     kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
     
     for _ in range(iterations):
-        # NB: The distribution of y_values is the same for each iteration (uniform) but
-        #     but the sampled x_values do differ (in terms of number and values).
+        # NB: The distribution of y_values is the same for each iteration (i.e. the the one defined by
+        #     the arbitrary GP) but the sampled x_values do differ (in terms of size and values).
         num_context = tf.random.uniform(shape=[],
                                     minval=min_num_context,
                                     maxval=max_num_context,
