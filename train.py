@@ -1,3 +1,4 @@
+#%%
 import os
 import argparse
 from datetime import datetime
@@ -14,13 +15,15 @@ from utility import PlotCallback
 tfk = tf.keras
 tfd = tfp.distributions
 
-# Parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
-parser.add_argument('-b', '--batch', type=int, default=64, help='Batch size for training')
-parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression|celeb)')
+# # Parse arguments
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
+# parser.add_argument('-b', '--batch', type=int, default=64, help='Batch size for training')
+# parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression)')
 
-args = parser.parse_args()
+# args = parser.parse_args()
+
+args = argparse.Namespace(epochs=15, batch=64, task='mnist')
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -79,5 +82,9 @@ tensorboard_clbk = tfk.callbacks.TensorBoard(
 plot_clbk = PlotCallback(logdir=log_dir, ds=test_ds, task=args.task)
 callbacks = [tensorboard_clbk, plot_clbk]
 
+#%%
+
 # Train
 model.fit(train_ds, epochs=EPOCHS, callbacks=callbacks)
+
+#%%
