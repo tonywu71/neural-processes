@@ -94,8 +94,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                  min_num_context: int=3,
                  max_num_context: int=10,
                  min_num_target: int=2,
-                 min_val_uniform: int=-2,
-                 max_val_uniform: int=2,
+                 min_x_val_uniform: int=-2,
+                 max_x_val_uniform: int=2,
                  kernel_length_scale: float=0.4):
         super().__init__(iterations=iterations, batch_size=batch_size)
         
@@ -104,9 +104,9 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
         self.max_num_context = max_num_context
         self.min_num_target = min_num_target
         
-        assert min_val_uniform < max_val_uniform, "min_val_uniform must be smaller than max_val_uniform"
-        self.min_val_uniform = min_val_uniform
-        self.max_val_uniform = max_val_uniform
+        assert min_x_val_uniform < max_x_val_uniform, "min_val_uniform must be smaller than max_val_uniform"
+        self.min_x_val_uniform = min_x_val_uniform
+        self.max_x_val_uniform = max_x_val_uniform
         
         self.kernel_length_scale = kernel_length_scale
         
@@ -123,8 +123,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                        min_num_context=self.min_num_context,
                        max_num_context=self.max_num_context,
                        min_num_target=self.min_num_target,
-                       min_val_uniform=self.min_val_uniform,
-                       max_val_uniform=self.max_val_uniform,
+                       min_val_uniform=self.min_x_val_uniform,
+                       max_val_uniform=self.max_x_val_uniform,
                        testing=testing)
     
     
