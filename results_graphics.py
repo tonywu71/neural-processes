@@ -24,9 +24,9 @@ tfd = tfp.distributions
 
 # args = parser.parse_args()
 
-#tf.config.set_visible_devices([], 'GPU')
+tf.config.set_visible_devices([], 'GPU')
 
-args = argparse.Namespace(epochs=15, batch=64, task='mnist', num_context=10, uniform_sampling=True)
+args = argparse.Namespace(epochs=15, batch=64, task='celeb', num_context=10, uniform_sampling=True)
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -141,13 +141,14 @@ for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
 # %%
 num_context = 10
 
-model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
+
 
     
 import matplotlib.pyplot as plt
-fig, axs = plt.subplots(3,2, figsize=(10, 5))
+fig, axs = plt.subplots(3,2, figsize=(6, 5))
 if args.task == 'celeb':
     for i, uniform in enumerate([True, False]):
+        model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{uniform}/' + "cp-0015.ckpt")
         train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=uniform)
         img_size=32
 
@@ -182,6 +183,7 @@ if args.task == 'celeb':
 
 elif args.task == 'mnist':
     for i, uniform in enumerate([True, False]):
+        model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{uniform}/' + "cp-0015.ckpt")
         train_ds, test_ds = load_mnist(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=uniform)
         img_size=28
         
