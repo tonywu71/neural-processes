@@ -136,3 +136,6 @@ dmypy.json
 
 # TF logs
 events.out*
+
+# Trained Models
+trained_models/
