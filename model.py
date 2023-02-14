@@ -9,12 +9,15 @@ class Encoder(tfkl.Layer):
         self._layers = [tfkl.Dense(units=dim, name=f'fc_{i}') for i, dim in enumerate(output_dims)]
         self.encoding_dim = output_dims[-1]
 
+    #@tf.function
     def call(self, context_x, context_y):
         # `context_x` shape (batch_size, observation_points, x_dim)
         # `context_y` shape (batch_size, observation_points, y_dim)
         # Reshape to parallelize accross all points
         context = tf.concat([context_x, context_y], axis=-1)
-        batch_size, observation_points, context_dim = tf.shape(context)
+        batch_size, observation_points, context_dim = [tf.shape(context)[0], tf.shape(context)[1], tf.shape(context)[2]]
+        #batch_size, observation_points, context_dim = tf.split(tf.shape(context), num_or_size_splits=3)
+        #batch_size, observation_points, context_dim = context.get_shape().as_list()
 
         hidden = tf.reshape(context, shape=(batch_size * observation_points, context_dim))
         # Forward pass through MLP
@@ -28,11 +31,21 @@ class Encoder(tfkl.Layer):
 
         return representations
 
+    # def get_config(self):
+    #     return dict([(f"layer{n}", layer) for n, layer in enumerate(self._layers)] + [("encoding_dim", self.encoding_dim), ("layers", len(self._layers))])
+
+    # @classmethod
+    # def from_config(cls, config):
+    #     self = cls(config['encoding_dim'])
+    #     for n in range(len(self._layers)):
+    #         self._layers[n] = config["layer{n}"]
+
 class Decoder(tfkl.Layer):
     def __init__(self, output_dims, name='decoder'):
         super(Decoder, self).__init__(name=name, dynamic=True)
         self._layers = [tfkl.Dense(units=dim, name=f'fc_{i}') for i, dim in enumerate(output_dims)]
 
+    #@tf.function
     def call(self, representations, target_x):
         # `target_x` shape (batch_size, target_points, x_dim)
         # `representations` shape (batch_size, repr_dim)
@@ -42,7 +55,10 @@ class Decoder(tfkl.Layer):
         representations = tf.tile(representations, [1, target_points, 1])  # (batch_size, target_points, repr_dim)
         inputs = tf.concat([representations, target_x], axis=-1)
         # Reshape to parallelize accross all points
-        batch_size, observation_points, inputs_dim = tf.shape(inputs)
+        
+        batch_size, observation_points, inputs_dim = [tf.shape(inputs)[0],tf.shape(inputs)[1],tf.shape(inputs)[2]]
+        #batch_size, observation_points, inputs_dim = inputs.get_shape().as_list()
+        
         hidden = tf.reshape(inputs, shape=(batch_size * observation_points, inputs_dim))
         # Forward pass through MLP
         for layer in self._layers[:-1]:
@@ -63,6 +79,7 @@ class ConditionalNeuralProcess(tfk.Model):
         self.encoder = Encoder(encoder_dims)
         self.decoder = Decoder(decoder_dims)
 
+    @tf.function
     def call(self, inputs):
         context_x, context_y, target_x = inputs
         representations = self.encoder(context_x, context_y)

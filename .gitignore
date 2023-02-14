@@ -133,3 +133,6 @@ dmypy.json
 
 # Datastore
 .data/
+
+# TF logs
+events.out*
