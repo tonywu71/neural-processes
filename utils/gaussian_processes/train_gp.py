@@ -7,21 +7,24 @@ import pandas as pd
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from utils.gaussian_processes.init_gp import get_mean_fn, get_kernel
+from utils.gaussian_processes.gp_hyperparameters import get_mean_fn, get_kernel
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
 
 
-def get_ds_observed(df_observed: pd.DataFrame, x_col: str, y_col: str) -> tf.data.Dataset:
+def df_to_dataset(df_observed: pd.DataFrame, x_col: str, y_col: str) -> tf.data.Dataset:
+    """Returns a tf.data.Dataset from a DataFrame with columns `x_col` and `y_col`."""
     ds_observed = tf.data.Dataset.from_tensor_slices(
         (df_observed[x_col].values.reshape(-1, 1), df_observed[y_col].values))
     return ds_observed
 
 
-def get_gp_loss_fn(mean_fn: Callable, kernel: tfp.math.psd_kernels.PositiveSemidefiniteKernel,
+def get_gp_loss_fn(mean_fn: Callable,
+                   kernel: tfp.math.psd_kernels.PositiveSemidefiniteKernel,
                    observation_noise_variance: float) -> Callable:
+    """Returns a function that computes the negative log-likelihood of a Gaussian process."""
     
     # Use tf.function for more efficient function evaluation
     @tf.function(autograph=False, experimental_compile=False)
@@ -41,8 +44,9 @@ def get_gp_loss_fn(mean_fn: Callable, kernel: tfp.math.psd_kernels.PositiveSemid
 
 
 def plot_learning_curve(nb_iterations: int, batch_nlls, full_ll):
+    """Plot the learning curve of the Gaussian process."""
     # TODO: Convert plot_function to matplotlib
-    pass
+    raise NotImplementedError("plot_learning_curve is not implemented yet.")
 
 
 def train_gp(df_observed: pd.DataFrame,
@@ -54,7 +58,13 @@ def train_gp(df_observed: pd.DataFrame,
                  Callable,
                  tfp.math.psd_kernels.PositiveSemidefiniteKernel,
                  Dict[str, tfp.util.TransformedVariable]]:
-    ds = get_ds_observed(df_observed, x_col=x_col, y_col=y_col)
+    """Train a Gaussian process on the observed data.
+    
+    Note that the batch_size is required as we update the GP's hyperparameters based
+    on backpropagation through the loss function.
+    """
+    
+    ds = df_to_dataset(df_observed, x_col=x_col, y_col=y_col)
 
     mean_fn = get_mean_fn(df_observed, y_col=y_col)
     kernel, variables = get_kernel()
@@ -102,6 +112,8 @@ def train_gp(df_observed: pd.DataFrame,
 
 
 def variables_to_df(variables: Dict[str, tfp.util.TransformedVariable]) -> pd.DataFrame:
+    """Format the variables as a DataFrame."""
+    
     data = list([(name, var.numpy()) for name, var in variables.items()])
     df_variables = pd.DataFrame(
         data, columns=['Hyperparameters', 'Value'])
