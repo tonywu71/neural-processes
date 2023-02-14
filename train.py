@@ -22,7 +22,7 @@ tfd = tfp.distributions
 
 # args = parser.parse_args()
 
-args = argparse.Namespace(epochs=15, batch=64, task='mnist')
+args = argparse.Namespace(epochs=1, batch=32, task="regression")
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -43,8 +43,8 @@ if args.task == 'mnist':
         return -dist.log_prob(target_y)
 
 else: # args.task == regression
-    data_generator = RegressionDataGeneratorArbitraryGP()
-    train_ds, test_ds = data_generator.load_regression_data(batch_size=BATCH_SIZE)
+    data_generator = RegressionDataGeneratorArbitraryGP(batch_size=BATCH_SIZE)
+    train_ds, test_ds = data_generator.load_regression_data()
 
     # Model architecture
     encoder_dims = [128, 128, 128, 128]
