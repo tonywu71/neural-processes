@@ -41,8 +41,8 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
                 shape=(batch_size, num_context, 2),
                 minval=0, maxval=27, dtype=tf.int32)
             
-        if uniform_sampling:
-            context_x = tf.sort(context_x)
+        if not uniform_sampling:
+            context_x = tf.sort(context_x, axis=1)
         
         # Sample observation coordinates from target image
         context_y = tf.gather_nd(img, context_x, batch_dims=1)
