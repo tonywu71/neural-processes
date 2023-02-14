@@ -12,17 +12,22 @@ from dataloader.regression_data_generator_base import RegressionDataGeneratorBas
 from utils.gaussian_processes.gp_model import GPModel
 
 
-def gen(gp_model: GPModel,
+def gen_from_gp(
+        gp_model: GPModel,
         df_predict: pd.DataFrame,
         batch_size,
         iterations,
         min_num_context,
         max_num_context,
-        min_num_target) -> Iterator[Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]]:          
+        min_num_target) -> Iterator[Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]]:     
+    """Generates a batch of data for regression based on an instance of GPModel
+    (i.e. a fitted Gaussian Process)."""     
     
     gp_posterior_predict = gp_model.get_gp_posterior_predict(df_predict)
     
     for _ in range(iterations):
+        # NB: The distribution of y_values is the same for each iteration (i.e. the the one defined by
+        #     the arbitrary GP) but the sampled x_values do differ (in terms of size and values).
         num_total_points = len(gp_posterior_predict.index_points)
         
         num_context = tf.random.uniform(shape=[],
@@ -55,8 +60,7 @@ def gen(gp_model: GPModel,
 
 
 class RegressionDataGenerator(RegressionDataGeneratorBase):
-    """Class that uses load_regression_data to create datasets.
-    """
+    """Class that generates regression data from a Gaussian Process defined by a GPModel instance."""
     def __init__(self,
                  gp_model: GPModel,
                  df_predict: pd.DataFrame,
@@ -90,7 +94,8 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
 
 
     def get_gp_curve_generator(self) -> Callable:
-        return partial(gen,
+        """Returns a generator function that generates regression data from a Gaussian Process."""
+        return partial(gen_from_gp,
                        gp_model=self.gp_model,
                        df_predict=self.df_predict,
                        batch_size=self.batch_size,
@@ -101,6 +106,7 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
     
     
     def load_regression_data(self) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
+        """Loads regression data from a Gaussian Process."""
         train_ds = tf.data.Dataset.from_generator(
             self.get_gp_curve_generator(),
             output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
