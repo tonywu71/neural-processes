@@ -42,11 +42,9 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
                 minval=0, maxval=27, dtype=tf.int32)
             
         if not uniform_sampling:
-            initial_shape = tf.shape(context_x)
             context_x_norm = tf.norm(tf.cast(context_x, tf.float32), axis=2) # norm of each coord (euclid norm requires float
-            ids = tf.argsort(context_x_norm)            # arg sort the norms
-            context_x = tf.gather(context_x, ids, axis=1) # re order the context point according to their norms
-            context_x = tf.reshape(context_x, initial_shape)
+            ids = tf.argsort(context_x_norm, axis=1)            # arg sort the norms
+            context_x = tf.gather(context_x, ids, axis=1, batch_dims=-1) # re order the context point according to their norms
         
         # Sample observation coordinates from target image
         context_y = tf.gather_nd(img, context_x, batch_dims=1)
