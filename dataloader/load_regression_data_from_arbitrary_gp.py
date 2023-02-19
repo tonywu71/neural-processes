@@ -9,6 +9,9 @@ tfd = tfp.distributions
 from dataloader.regression_data_generator_base import RegressionDataGeneratorBase
 
 
+DEFAULT_TESTING_NUM_TARGET = 400
+
+
 def gen_from_arbitrary_gp(
         batch_size,
         iterations,
@@ -16,8 +19,9 @@ def gen_from_arbitrary_gp(
         min_num_context,
         max_num_context,
         min_num_target,
-        min_val_uniform,
-        max_val_uniform,
+        max_num_target,
+        min_x_val_uniform,
+        max_x_val_uniform,
         testing) -> Iterator[Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]]:
     """Generates a batch of data for regression based on the original Conditional Neural Processes paper.
     Note that the data is generated batch-wise.
@@ -37,50 +41,34 @@ def gen_from_arbitrary_gp(
                                     maxval=max_num_context,
                                     dtype=tf.int32)
 
-        num_target = tf.random.uniform(shape=[],
-                                    minval=min_num_target,
-                                    maxval=max_num_context,
-                                    dtype=tf.int32)
+        if not testing:
+            num_target = tf.random.uniform(shape=[],
+                                        minval=min_num_target,
+                                        maxval=max_num_target,
+                                        dtype=tf.int32)
+        else:
+            # If testing, we want to use a fixed number of points for the target
+            num_target = DEFAULT_TESTING_NUM_TARGET
         
         num_total_points = num_context + num_target
         
         x_values = tf.random.uniform(shape=(batch_size, num_total_points, 1),
-                                        minval=min_val_uniform,
-                                        maxval=max_val_uniform)
+                                     minval=min_x_val_uniform,
+                                     maxval=max_x_val_uniform)
         
         gp = tfd.GaussianProcess(kernel, index_points=x_values, jitter=1.0e-4)
         y_values = tf.expand_dims(gp.sample(), axis=-1)
         
-        if testing is True:
-            num_target = 400
-            num_total_points = num_target
-            x_values = tf.expand_dims(tf.range(-2., 2., 1./100., dtype=tf.float32), axis=0)  # (1, 400)
-            x_values = tf.tile(x_values, [batch_size, 1])  # (batch_size, 400)
-            x_values = tf.expand_dims(x_values, axis=-1)  # (batch_size, 400, 1)
-        else:
-            x_values = x_values
-            num_target = num_target
+        idx = tf.random.shuffle(tf.range(num_total_points))
         
-        y_values = tf.expand_dims(gp.sample(), axis=-1)
+        # Select the targets which will consist of the context points
+        # as well as some new target points
+        target_x = x_values[:, :, :]
+        target_y = y_values[:, :, :]
 
-        if testing is True:
-            target_x = x_values
-            target_y = y_values
-
-            # Select the observations
-            idx = tf.random.shuffle(tf.range(num_target))
-            context_x = tf.gather(x_values, idx[:num_context], axis=1)
-            context_y = tf.gather(y_values, idx[:num_context], axis=1)
-        
-        else:
-            # Select the targets which will consist of the context points
-            # as well as some new target points
-            target_x = x_values[:, :num_target + num_context, :]  # Note: I think the second slicing is useless in the training scenario
-            target_y = y_values[:, :num_target + num_context, :]
-
-            # Select the observations
-            context_x = x_values[:, :num_context, :]
-            context_y = y_values[:, :num_context, :]
+        # Select the observations
+        context_x = tf.gather(x_values, indices=idx[:num_context], axis=1)
+        context_y = tf.gather(y_values, indices=idx[:num_context], axis=1)
 
         yield (context_x, context_y, target_x), target_y
 
@@ -94,15 +82,19 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                  min_num_context: int=3,
                  max_num_context: int=10,
                  min_num_target: int=2,
+                 max_num_target: int=10,
                  min_x_val_uniform: int=-2,
                  max_x_val_uniform: int=2,
                  kernel_length_scale: float=0.4):
         super().__init__(iterations=iterations, batch_size=batch_size)
         
-        
+        assert min_num_context < max_num_context, "min_num_context must be smaller than max_num_context"
         self.min_num_context = min_num_context
         self.max_num_context = max_num_context
+        
+        assert min_num_target < max_num_target, "min_num_target must be smaller than max_num_target"
         self.min_num_target = min_num_target
+        self.max_num_target = max_num_target
         
         assert min_x_val_uniform < max_x_val_uniform, "min_val_uniform must be smaller than max_val_uniform"
         self.min_x_val_uniform = min_x_val_uniform
@@ -123,8 +115,9 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                        min_num_context=self.min_num_context,
                        max_num_context=self.max_num_context,
                        min_num_target=self.min_num_target,
-                       min_val_uniform=self.min_x_val_uniform,
-                       max_val_uniform=self.max_x_val_uniform,
+                       max_num_target=self.max_num_target,
+                       min_x_val_uniform=self.min_x_val_uniform,
+                       max_x_val_uniform=self.max_x_val_uniform,
                        testing=testing)
     
     
