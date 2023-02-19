@@ -20,11 +20,11 @@ def plot_mean_with_std(x: np.ndarray,
         ax = plt.gca()
     
     # Plot mean:
-    ax.plot(x, mean, label="Prediction")  # type: ignore
+    ax.plot(x, mean, label="Mean prediction")  # type: ignore
     
     # Plot target if given:
     if y_true is not None:
-        ax.plot(x, y_true, label="True")
+        ax.plot(x, y_true, label="True function")
     
     # Plot standard deviation:
     ax.fill_between(x,  # type: ignore
@@ -32,12 +32,14 @@ def plot_mean_with_std(x: np.ndarray,
                     mean + std,  # type: ignore
                     alpha=alpha,
                     label="Standard deviation")
-        
+    
+    ax.legend()
+    
     return ax  # type: ignore
 
 
 def plot_preds_from_ds_test(model: ConditionalNeuralProcess, ds_test: tf.data.Dataset, num_samples: int=1):
-    fig, axis = plt.subplots(num_samples, 1, figsize=(num_samples*4, 5))
+    fig, axis = plt.subplots(num_samples, 1, figsize=(8, num_samples*2))
     
     (context_x, context_y, target_x), target_y = next(iter(ds_test.take(1)))
     y_preds = model.predict((context_x, context_y, target_x))
@@ -55,9 +57,15 @@ def plot_preds_from_ds_test(model: ConditionalNeuralProcess, ds_test: tf.data.Da
         x_val = tf.gather(x_val, idx_x_sorted)
         mean = tf.gather(y_pred[:, 0], idx_x_sorted)
         std = tf.gather(y_pred[:, 1], idx_x_sorted)
+        y_true = tf.gather(y_true, idx_x_sorted)
         
-        axis[batch_idx] = plot_mean_with_std(x=x_val, mean=mean, std=std)
+        if num_samples == 1:
+            plot_mean_with_std(x=x_val, mean=mean, std=std, y_true=y_true, ax=axis)
+        else:
+            plot_mean_with_std(x=x_val, mean=mean, std=std, y_true=y_true, ax=axis[batch_idx])
     
     fig.suptitle("Predictions from test set")
+    
+    fig.tight_layout()
     
     return fig
