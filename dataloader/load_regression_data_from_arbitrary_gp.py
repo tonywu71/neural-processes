@@ -77,35 +77,29 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
     """Class that generates a batch of data for regression based on
     the original Conditional Neural Processes paper."""
     def __init__(self,
-                 iterations: int=250,
-                 batch_size: int=32,
-                 min_num_context: int=3,
-                 max_num_context: int=10,
-                 min_num_target: int=2,
-                 max_num_target: int=10,
-                 min_x_val_uniform: int=-2,
-                 max_x_val_uniform: int=2,
+                 iterations: int,
+                 batch_size: int,
+                 min_num_context: int,
+                 max_num_context: int,
+                 min_num_target: int,
+                 max_num_target: int,
+                 min_x_val_uniform: int,
+                 max_x_val_uniform: int,
                  kernel_length_scale: float=0.4):
-        super().__init__(iterations=iterations, batch_size=batch_size)
-        
-        assert min_num_context < max_num_context, "min_num_context must be smaller than max_num_context"
-        self.min_num_context = min_num_context
-        self.max_num_context = max_num_context
-        
-        assert min_num_target < max_num_target, "min_num_target must be smaller than max_num_target"
-        self.min_num_target = min_num_target
-        self.max_num_target = max_num_target
-        
-        assert min_x_val_uniform < max_x_val_uniform, "min_val_uniform must be smaller than max_val_uniform"
-        self.min_x_val_uniform = min_x_val_uniform
-        self.max_x_val_uniform = max_x_val_uniform
+        super().__init__(iterations=iterations,
+                         batch_size=batch_size,
+                         min_num_context=min_num_context,
+                         max_num_context=max_num_context,
+                         min_num_target=min_num_target,
+                         max_num_target=max_num_target,
+                         min_x_val_uniform=min_x_val_uniform,
+                         max_x_val_uniform=max_x_val_uniform)
         
         self.kernel_length_scale = kernel_length_scale
         
-        self.train_ds, self.test_ds = self.load_regression_data()
 
     
-    def get_gp_curve_generator_from_uniform(self, testing: bool=False) -> Callable:
+    def get_gp_curve_generator(self, testing: bool=False) -> Callable:
         """Returns a function that generates a batch of data for regression based on
         the original Conditional Neural Processes paper."""
         return partial(gen_from_arbitrary_gp,
@@ -119,20 +113,3 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                        min_x_val_uniform=self.min_x_val_uniform,
                        max_x_val_uniform=self.max_x_val_uniform,
                        testing=testing)
-    
-    
-    def load_regression_data(self) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
-        """Returns a tuple of training and test datasets."""
-        train_ds = tf.data.Dataset.from_generator(
-            self.get_gp_curve_generator_from_uniform(testing=False),
-            output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-        )
-        test_ds = tf.data.Dataset.from_generator(
-            self.get_gp_curve_generator_from_uniform(testing=True),
-            output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-        )
-        
-        train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)  # No need to shuffle as the data is already generated randomly
-        test_ds = test_ds.prefetch(tf.data.experimental.AUTOTUNE)
-        
-        return train_ds, test_ds
