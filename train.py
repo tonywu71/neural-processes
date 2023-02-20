@@ -6,7 +6,7 @@ from datetime import datetime
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from dataloader.load_regression_data_uniform import RegressionDataGeneratorUniform
+from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
 from model import ConditionalNeuralProcess
@@ -48,8 +48,9 @@ if args.task == 'mnist':
         dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(target_y)
 
+
 elif args.task == 'regression':
-    data_generator = RegressionDataGeneratorUniform()
+    data_generator = RegressionDataGeneratorArbitraryGP()
     train_ds, test_ds = data_generator.load_regression_data(batch_size=BATCH_SIZE)
 
     # Model architecture
