@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Tuple, Callable, Iterator
+from typing import Optional, Tuple, Callable, Iterator
 
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -85,6 +85,7 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                  max_num_target: int,
                  min_x_val_uniform: int,
                  max_x_val_uniform: int,
+                 n_iterations_test: Optional[int]=None,
                  kernel_length_scale: float=0.4):
         super().__init__(iterations=iterations,
                          batch_size=batch_size,
@@ -93,7 +94,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                          min_num_target=min_num_target,
                          max_num_target=max_num_target,
                          min_x_val_uniform=min_x_val_uniform,
-                         max_x_val_uniform=max_x_val_uniform)
+                         max_x_val_uniform=max_x_val_uniform,
+                         n_iterations_test=n_iterations_test)
         
         self.kernel_length_scale = kernel_length_scale
         

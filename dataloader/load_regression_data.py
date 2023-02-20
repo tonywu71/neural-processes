@@ -79,8 +79,9 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
                  max_num_context: int,
                  min_num_target: int,
                  max_num_target: int,
-                 min_x_val_uniform: Optional[int],
-                 max_x_val_uniform: Optional[int]):
+                 min_x_val_uniform: Optional[int]=None,
+                 max_x_val_uniform: Optional[int]=None,
+                 n_iterations_test: Optional[int]=None):
 
         self.gp_model = gp_model
         assert self.gp_model.is_fitted, "GP model must be fitted before using it to generate data."
@@ -106,7 +107,11 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
                          min_num_target=min_num_target,
                          max_num_target=max_num_target,
                          min_x_val_uniform=min_x_val_uniform,  # type: ignore
-                         max_x_val_uniform=max_x_val_uniform)  # type: ignore
+                         max_x_val_uniform=max_x_val_uniform,  # type: ignore
+                         n_iterations_test=n_iterations_test)
+        
+        self.train_ds, self.test_ds = self.load_regression_data()
+        self.test_ds = self.test_ds.take(self.n_iterations_test)
         
 
     def get_gp_curve_generator(self, testing: bool=False) -> Callable:

@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 from abc import ABC, abstractmethod
 
 import tensorflow as tf
@@ -19,7 +19,8 @@ class RegressionDataGeneratorBase(ABC):
                  min_num_target: int=2,
                  max_num_target: int=10,
                  min_x_val_uniform: int=-2,
-                 max_x_val_uniform: int=2):
+                 max_x_val_uniform: int=2,
+                 n_iterations_test: Optional[int]=None):
         self.iterations = iterations
         self.batch_size = batch_size
         
@@ -34,6 +35,11 @@ class RegressionDataGeneratorBase(ABC):
         assert min_x_val_uniform < max_x_val_uniform, "min_val_uniform must be smaller than max_val_uniform"
         self.min_x_val_uniform = min_x_val_uniform
         self.max_x_val_uniform = max_x_val_uniform
+        
+        if n_iterations_test is None:
+            self.n_iterations_test = self.iterations // 10
+        else:
+            self.n_iterations_test = n_iterations_test
         
         # The following attributes will be set when calling load_regression_data() from
         # the child class:
