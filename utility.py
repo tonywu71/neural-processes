@@ -70,6 +70,29 @@ def plot_image(target_x, target_y, context_x, context_y, pred_y):
     axes[2].set_title('Predicted variance')
     return fig
 
+def plot_image_celeb(target_x, target_y, context_x, context_y, pred_y, img_size=32):
+	mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+	fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
+	# Plot context points
+	white_img = tf.tile(tf.constant([[[0.,0.,0.]]]), [img_size, img_size, 1])
+	indices = tf.cast(context_x[0] * float(img_size - 1.0), tf.int32)
+
+	updates = context_y[0]
+
+	context_img = tf.tensor_scatter_nd_update(white_img, indices, updates)
+	axes[0].imshow(context_img.numpy())
+	axes[0].axis('off')
+	axes[0].set_title('Given context')
+	# Plot mean and variance
+	mean = tf.reshape(mu[0], (img_size, img_size, 3))
+	var = tf.reshape(sigma[0], (img_size, img_size, 3))
+	axes[1].imshow(mean.numpy(), vmin=0., vmax=1.)
+	axes[2].imshow(var.numpy(), vmin=0., vmax=1.)
+	axes[1].axis('off')
+	axes[2].axis('off')
+	axes[1].set_title('Predicted mean')
+	axes[2].set_title('Predicted variance')
+	return fig
 
 class PlotCallback(tfk.callbacks.Callback):
     def __init__(self, logdir, ds, task):
@@ -77,7 +100,12 @@ class PlotCallback(tfk.callbacks.Callback):
         self.ds = iter(ds)
         logdir += '/plots'
         self.file_writer = tf.summary.create_file_writer(logdir=logdir)
-        self.plot_fn = plot_image if task == 'mnist' else plot_regression
+        if task == 'mnist':
+            self.plot_fn = plot_image
+        elif task == 'celeb':
+            self.plot_fn = plot_image_celeb
+        else:
+            self.plot_fn = plot_regression
         self.test_ds = ds
         self.test_it = iter(self.test_ds)
 
