@@ -77,14 +77,14 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
     """Class that generates a batch of data for regression based on
     the original Conditional Neural Processes paper."""
     def __init__(self,
-                 iterations: int,
-                 batch_size: int,
-                 min_num_context: int,
-                 max_num_context: int,
-                 min_num_target: int,
-                 max_num_target: int,
-                 min_x_val_uniform: int,
-                 max_x_val_uniform: int,
+                 iterations: int=250,
+                 batch_size: int=32,
+                 min_num_context: int=3,
+                 max_num_context: int=10,
+                 min_num_target: int=2,
+                 max_num_target: int=10,
+                 min_x_val_uniform: int=-2,
+                 max_x_val_uniform: int=2,
                  n_iterations_test: Optional[int]=None,
                  kernel_length_scale: float=0.4):
         super().__init__(iterations=iterations,

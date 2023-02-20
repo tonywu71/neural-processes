@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 class RegressionDataGeneratorBase(ABC):
     """Abstract base class for regression data generators."""
     def __init__(self,
-                 iterations: int=250,
-                 batch_size: int=32,
-                 min_num_context: int=3,
-                 max_num_context: int=10,
-                 min_num_target: int=2,
-                 max_num_target: int=10,
-                 min_x_val_uniform: int=-2,
-                 max_x_val_uniform: int=2,
+                 iterations: int,
+                 batch_size: int,
+                 min_num_context: int,
+                 max_num_context: int,
+                 min_num_target: int,
+                 max_num_target: int,
+                 min_x_val_uniform: int,
+                 max_x_val_uniform: int,
                  n_iterations_test: Optional[int]=None):
         self.iterations = iterations
         self.batch_size = batch_size
