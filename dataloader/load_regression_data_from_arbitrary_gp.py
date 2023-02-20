@@ -97,6 +97,7 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
         
         self.kernel_length_scale = kernel_length_scale
         
+        self.train_ds, self.test_ds = self.load_regression_data()
 
     
     def get_gp_curve_generator(self, testing: bool=False) -> Callable:

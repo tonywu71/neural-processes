@@ -35,7 +35,10 @@ class RegressionDataGeneratorBase(ABC):
         self.min_x_val_uniform = min_x_val_uniform
         self.max_x_val_uniform = max_x_val_uniform
         
-        self.train_ds, self.test_ds = self.load_regression_data()
+        # The following attributes will be set when calling load_regression_data() from
+        # the child class:
+        self.train_ds: tf.data.Dataset = None
+        self.test_ds: tf.data.Dataset = None
     
     
     @abstractmethod
