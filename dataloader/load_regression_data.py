@@ -12,9 +12,6 @@ from dataloader.regression_data_generator_base import RegressionDataGeneratorBas
 from utils.gaussian_processes.gp_model import GPModel
 
 
-DEFAULT_TESTING_NUM_TARGET = 400
-
-
 def gen_from_gp(
         gp_model: GPModel,
         batch_size,
@@ -44,13 +41,14 @@ def gen_from_gp(
                                         dtype=tf.int32)
         else:
             # If testing, we want to use a fixed number of points for the target
-            num_target = DEFAULT_TESTING_NUM_TARGET
+            num_target = max_num_target
         
         num_total_points = num_context + num_target
         
         x_values = tf.random.uniform(shape=(batch_size, num_total_points, 1),
                                      minval=min_x_val_uniform,
-                                     maxval=max_x_val_uniform)
+                                     maxval=max_x_val_uniform,
+                                     dtype=tf.float64)  # to ensure compatibility with GPModel (which uses float64)
         
         y_values = tf.expand_dims(gp_model.sample(x_values=x_values), axis=-1)
         

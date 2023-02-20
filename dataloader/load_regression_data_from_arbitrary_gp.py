@@ -9,9 +9,6 @@ tfd = tfp.distributions
 from dataloader.regression_data_generator_base import RegressionDataGeneratorBase
 
 
-DEFAULT_TESTING_NUM_TARGET = 400
-
-
 def gen_from_arbitrary_gp(
         batch_size,
         iterations,
@@ -48,7 +45,7 @@ def gen_from_arbitrary_gp(
                                         dtype=tf.int32)
         else:
             # If testing, we want to use a fixed number of points for the target
-            num_target = DEFAULT_TESTING_NUM_TARGET
+            num_target = max_num_target
         
         num_total_points = num_context + num_target
         
