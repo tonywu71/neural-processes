@@ -15,6 +15,7 @@ from utility import PlotCallback
 tfk = tf.keras
 tfd = tfp.distributions
 
+
 # # Parse arguments
 # parser = argparse.ArgumentParser()
 # parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
@@ -23,9 +24,7 @@ tfd = tfp.distributions
 
 # args = parser.parse_args()
 
-#tf.config.set_visible_devices([], 'GPU')
-
-args = argparse.Namespace(epochs=15, batch=64, task='mnist', num_context=1, uniform_sampling=False)
+args = argparse.Namespace(epochs=1, batch=32, task="regression", num_context=1, uniform_sampling=False)
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -48,10 +47,19 @@ if args.task == 'mnist':
         dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(target_y)
 
-
 elif args.task == 'regression':
-    data_generator = RegressionDataGeneratorArbitraryGP()
-    train_ds, test_ds = data_generator.load_regression_data(batch_size=BATCH_SIZE)
+    data_generator = RegressionDataGeneratorArbitraryGP(
+        iterations=10,
+        batch_size=16,
+        min_num_context=3,
+        max_num_context=20,
+        min_num_target=2,
+        max_num_target=10,
+        min_x_val_uniform=-2,
+        max_x_val_uniform=2,
+        kernel_length_scale=0.4
+    )
+    train_ds, test_ds = data_generator.load_regression_data()
 
     # Model architecture
     encoder_dims = [128, 128, 128, 128]
