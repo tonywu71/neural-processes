@@ -69,6 +69,7 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
         
         # reshape the target image to have shape: batch size, input dim, 1 
         target_y = tf.reshape(img, (batch_size, 28 * 28, 1))
+        # pixel coords, pixel values, all image coords, target image
         return (context_x, context_y, target_x), target_y
     
     train_ds = train_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
