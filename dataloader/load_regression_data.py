@@ -12,6 +12,9 @@ from dataloader.regression_data_generator_base import RegressionDataGeneratorBas
 from utils.gaussian_processes.gp_model import GPModel
 
 
+DEFAULT_TESTING_NUM_TARGET = 400
+
+
 def gen_from_gp(
         gp_model: GPModel,
         batch_size,
@@ -41,7 +44,7 @@ def gen_from_gp(
                                         dtype=tf.int32)
         else:
             # If testing, we want to use a fixed number of points for the target
-            num_target = max_num_target
+            num_target = DEFAULT_TESTING_NUM_TARGET
         
         num_total_points = num_context + num_target
         

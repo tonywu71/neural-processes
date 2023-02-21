@@ -76,10 +76,13 @@ class GPModel():
     
     def sample(self, x_values: tf.Tensor) -> tf.Tensor:
         """Draws samples from a Gaussian Process defined by a mean function and a covariance function."""
-        gp = tfd.GaussianProcess(
-            index_points=x_values,
+        gp = tfd.GaussianProcessRegressionModel(
             mean_fn=self.mean_fn,
-            kernel=self.kernel)
+            kernel=self.kernel,
+            index_points=x_values,
+            observation_index_points=self.df_observed[self.x_col].values.reshape(-1, 1),
+            observations=self.df_observed[self.y_col].values,
+            observation_noise_variance=self.variables["observation_noise_variance"])
         
         return gp.sample()
     
