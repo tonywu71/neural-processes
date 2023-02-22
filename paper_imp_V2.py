@@ -33,12 +33,12 @@ def gen(dataset):
 
 train_ds = tf.data.Dataset.from_generator(
             partial(gen, dataset_train),
-            output_types=((tf.float32, tf.float32), tf.float32)
+            output_types=((tf.float32, tf.float32), (tf.float32))
         )
 
 test_ds = tf.data.Dataset.from_generator(
             partial(gen, dataset_test),
-            output_types=((tf.float32, tf.float32), tf.float32)
+            output_types=((tf.float32, tf.float32), (tf.float32))
         )
 
 
@@ -57,32 +57,32 @@ model = NeuralProcess(z_output_sizes, enc_output_sizes, dec_output_sizes)
 #opt = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
 #%%
-# def loss(target_y, pred_y):
-#     dist, _, _ = pred_y#self(context, query)
-#     log_prob = dist.log_prob(target)
-#     log_prob = tf.reduce_sum(log_prob)
-
-#     prior, _, _ = self.z_prob(self.z_encoder(context))
-#     posterior, _, _ = self.z_prob(self.z_encoder([query, target]))
-
-#     kl = tfp.distributions.kl_divergence(prior, posterior)
-#     kl = tf.reduce_sum(kl)
-
-#     # maximize variational lower bound
-#     loss = -log_prob + kl
-#     return loss
 
 
 def loss(target_y, pred_y):
-    # Get the distribution
     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-    #dist,mu, sigma = pred_y
-    # mu = pred_y[1]
-    # sigma = pred_y[2]
-    
     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-    #dist = pred_y
-    return -dist.log_prob(target_y)
+
+    log_prob = dist.log_prob(target_y)
+    log_prob = tf.reduce_sum(log_prob)
+
+    context, query = model.inputs # TODO how do we get this context & query? its from the input data 
+    prior = model.z_encoder_latent(context) # TODO can we even call methods of the model in the loss?
+    posterior = model.z_encoder_latent(tf.concat([query, target_y], axis=-1))
+
+    kl = tfp.distributions.kl_divergence(prior, posterior)
+    kl = tf.reduce_sum(kl)
+
+    # maximize variational lower bound
+    loss = -log_prob + kl
+    return loss
+
+
+# def loss(target_y, pred_y):
+#     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+#     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+#     return -dist.log_prob(target_y)
+
 
 model.compile(loss=loss, optimizer='adam')
 
