@@ -142,6 +142,7 @@ def plot_func(x, y, cx, cy, pred, var, batch=0, axis=0):
         batch: index of batch to plot
         axis: index of axis to plot
     """
+    plt.figure()
     plt.plot(x[batch], pred[batch], 'b', linewidth=2)
     plt.plot(x[batch], y[batch], 'k:', linewidth=2)
     plt.plot(cx[batch], cy[batch], 'ko', markersize=10)
@@ -153,4 +154,5 @@ def plot_func(x, y, cx, cy, pred, var, batch=0, axis=0):
         facecolor='#65c9f7',
         interpolate=True)
 
-    plt.show()
+    #plt.show()
+    return plt
