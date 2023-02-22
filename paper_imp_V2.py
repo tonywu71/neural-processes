@@ -5,12 +5,14 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from functools import partial
 
+tf.config.set_visible_devices([], 'GPU')
+
 # %%
 from neural_process_model_v2 import NeuralProcess
 from gp_curves import GPCurvesGenerator, plot_func
 
 # %%
-TRAINING_ITERATIONS = int(1e4) # 1e5
+TRAINING_ITERATIONS = int(500) # 1e5
 MAX_CONTEXT_POINTS = 10
 PLOT_AFTER = int(1e4)
 
@@ -41,16 +43,12 @@ test_ds = tf.data.Dataset.from_generator(
 
 
 
-
-
-
-
 # %%
 
 
-z_output_sizes = [128, 128, 128, 128]
+z_output_sizes = [128, 128, 128, 128, 256]
 enc_output_sizes = [128, 128, 128, 128]
-dec_output_sizes = [128, 128, 1]
+dec_output_sizes = [128, 128, 2]
 
 model = NeuralProcess(z_output_sizes, enc_output_sizes, dec_output_sizes)
 
@@ -91,85 +89,74 @@ model.compile(loss=loss, optimizer='adam')
 
 # %%
 
-model.fit(train_ds, epochs=1)
+
+
+import io
+class PlotCallback(tf.keras.callbacks.Callback):
+    def __init__(self, logdir, ds):
+        super(PlotCallback, self).__init__()
+        self.ds = iter(ds)
+        logdir += '/plots'
+        self.file_writer = tf.summary.create_file_writer(logdir=logdir)
+
+        self.test_ds = ds
+        self.test_it = iter(self.test_ds)
+
+    def plot(self):
+        test_sample = next(self.test_it)
+        pred_y = self.model(test_sample[0])
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+        
+        (context, query), target = test_sample
+        cx, cy = tf.split(context, num_or_size_splits=2, axis=1)
+        return plot_func(query, target, cx, cy, mu, sigma)
+
+    def get_next_data(self):
+        try:
+            next_data = next(self.test_it)
+        except StopIteration:
+            self.test_it = iter(self.test_ds)
+            next_data = next(self.test_it)
+        return next_data
+    
+    def plot_to_image(figure):
+        """Converts the matplotlib plot specified by 'figure' to a PNG image and
+        returns it. The supplied figure is closed and inaccessible after this call."""
+        # Save the plot to a PNG in memory.
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        # Closing the figure prevents it from being displayed directly inside
+        # the notebook.
+        #plt.close(figure)
+        buf.seek(0)
+        # Convert PNG buffer to TF image
+        image = tf.image.decode_png(buf.getvalue(), channels=4)
+        # Add the batch dimension
+        image = tf.expand_dims(image, 0)
+        return image
+
+
+    def on_epoch_end(self, epoch, logs=None):
+        fig = self.plot()
+        img = PlotCallback.plot_to_image(fig)
+        with self.file_writer.as_default():
+            tf.summary.image(name="NP image completion", data=img, step=epoch)
+
+
+plotter = PlotCallback('np_logs/', test_ds)
+
+callbacks = [plotter]
 
 #%%
-def plot():
-    test_sample = next(gen(dataset_test))
-    (context, query), target = test_sample
-    pred_y = model(test_sample[0])
-    mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-    dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-    cx, cy = tf.split(context, num_or_size_splits=2, axis=1)
-    plot_func(query, target, cx, cy, mu, sigma)
-plot()
+
+model.fit(train_ds, epochs=20, callbacks=callbacks)
+
+
+
+
+
 #%%
-loss_graph = []
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
 
-    for i in range(TRAINING_ITERATIONS):
-        _, l = sess.run([opt, loss])
-        loss_graph.append(l)
-
-        if i % PLOT_AFTER == 0:
-            context, query, target, loss_v, pred, var = sess.run([data_test.context,
-                                                                  data_test.query,
-                                                                  data_test.target,
-                                                                  loss, mu, sigma])
-            cx, cy = context
-            print('Iteration: {}, loss: {}'.format(i, loss_v))
-
-            plot_func(query, target, cx, cy, pred, var)
-
-plt.plot(loss_graph)
-
-# %%
-z_output_sizes = [128, 128, 128, 128]
-enc_output_sizes = [128, 128, 128, 128]
-cross_output_sizes = [128, 128, 128, 128]
-dec_output_sizes = [128, 128, 1]
-
-self_attention = neural_process.Attention(attention_type='multihead', proj=[128, 128])
-cross_attention = neural_process.Attention(attention_type='multihead', proj=[128, 128])
-
-model = neural_process.AttentiveNP(z_output_sizes,
-                                   enc_output_sizes,
-                                   cross_output_sizes,
-                                   dec_output_sizes,
-                                   self_attention,
-                                   cross_attention)
-
-loss = model.loss(data_train.context,
-                  data_train.query,
-                  data_train.target)
-
-_, mu, sigma = model(data_test.context, data_test.query)
-
-opt = tf.train.AdamOptimizer(1e-4).minimize(loss)
-
-# %%
-loss_graph = []
-with tf.Session() as sess:
-    sess.run(tf.global_variables_initializer())
-
-    for i in range(TRAINING_ITERATIONS):
-        _, l = sess.run([opt, loss])
-        loss_graph.append(l)
-
-        if i % PLOT_AFTER == 0:
-            context, query, target, loss_v, pred, var = sess.run([data_test.context,
-                                                                  data_test.query,
-                                                                  data_test.target,
-                                                                  loss, mu, sigma])
-            cx, cy = context
-            print('Iteration: {}, loss: {}'.format(i, loss_v))
-
-            plot_func(query, target, cx, cy, pred, var)
-
-plt.plot(loss_graph)
-
-# %%
 
 
 
