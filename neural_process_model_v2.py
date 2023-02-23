@@ -65,7 +65,7 @@ class NeuralProcess(tfk.Model):
     def __init__(self,
                  z_output_sizes,
                  enc_output_sizes,
-                 dec_output_sizes, name='Neural Process'):
+                 dec_output_sizes, name='NeuralProcess'):
         super(NeuralProcess, self).__init__(name=name)
 
         self.z_encoder_latent = LatentEncoder(z_output_sizes)
