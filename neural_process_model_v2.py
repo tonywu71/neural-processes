@@ -52,12 +52,12 @@ class LatentEncoder(tfk.layers.Layer):
 
     def call(self, rep):
         hidden = self.model(rep)
-        hidden = tf.reduce_mean(hidden, axis=1) # the first axis is the number of samples, remove these, LOOSING INFORMATION
+        # hidden = tf.reduce_mean(hidden, axis=1) # the first axis is the number of samples, remove these, LOOSING INFORMATION
 
         mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
 
         sigma = tf.exp(log_sigma)
-        dist = tfp.distributions.Normal(mu, sigma)
+        dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return dist
 
 
