@@ -53,12 +53,13 @@ class LatentEncoder(tfk.layers.Layer):
     def call(self, rep):
         hidden = self.model(rep)
         # hidden = tf.reduce_mean(hidden, axis=1)
+
         # changed the hidden layer to be only the representations instead of learning the mu and sigma directly
         # mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
 
         # sigma = tf.exp(log_sigma)
 
-        mu = tf.reduce_mean(hidden, axis=1)
+        mu = tf.reduce_mean(hidden, axis=1) 
         sigma = tf.reduce_std(hidden, axis=1)
         # don't need the entire distribution here, because we reparametrize with a normal distribution
         # dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
@@ -81,7 +82,8 @@ class NeuralProcess(tfk.Model):
         # self.dense_sigma = tfk.layers.Dense(size)
     
     @tf.function
-    def call(self, x, eps):
+    def call(self, x, eps): # not passing in eps from anywhere yet atm
+        # some implementations have eps being passed through the decoder separately, not sure what this does
         context, query = x
 
         z_mu, z_sigma = self.z_encoder_latent(context)
@@ -91,8 +93,8 @@ class NeuralProcess(tfk.Model):
 
         # dist = tfp.distributions.MultivariateNormalDiag(loc=tf.zeros(z_mu.shape), scale_diag=tf.ones(z_sigma.shape))
         # eps = dist.sample()
-        latent = eps * z_sigma + z_mu
-
+        latent = eps * z_sigma + z_mu # something like this is needed so that the backprop has a deterministic connection through the learned params
+        
         latent = tf.tile(tf.expand_dims(latent, 1),
                           [1, tf.shape(query)[1], 1])
 
