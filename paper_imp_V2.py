@@ -51,7 +51,7 @@ test_ds = tf.data.Dataset.from_generator(
 # %%
 
 
-z_output_sizes = [128, 128, 128, 128, 256]
+z_output_sizes = [128, 128, 128, 128, 128]
 enc_output_sizes = [128, 128, 128, 128]
 dec_output_sizes = [128, 128, 2]
 
@@ -161,7 +161,7 @@ callbacks = [plotter]
 
 def compute_loss(model, x):
     (context, query), target_y = x
-    pred_y = model(x[0])
+    pred_y = model(x[0]) # what is pred_y
     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
 
