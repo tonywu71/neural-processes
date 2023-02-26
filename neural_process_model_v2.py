@@ -13,26 +13,24 @@ def dense_sequential(output_sizes, activation=tf.nn.relu):
     model.add(tfk.layers.Dense(output_sizes[-1]))
     return model
 
-# commented out because we should just have one encoder type
-# class Encoder(tfk.layers.Layer):
-#     def __init__(self, output_sizes, attention=None, keepdims=False, name='Encoder'):
-#         super(Encoder, self).__init__(name=name, dynamic=True)
-#         self.model = dense_sequential(output_sizes)
-#         self.attention = attention
-#         self.keepdims = keepdims
+class Encoder(tfk.layers.Layer):
+    def __init__(self, output_sizes, attention=None, keepdims=False, name='Encoder'):
+        super(Encoder, self).__init__(name=name, dynamic=True)
+        self.model = dense_sequential(output_sizes)
+        self.attention = attention
+        self.keepdims = keepdims
 
-#     def call(self, rep, key=None, query=None):
-#         if isinstance(rep, (tuple, list)):
-#             rep = tf.concat(rep, axis=-1)
+    def call(self, rep, key=None, query=None):
+        if isinstance(rep, (tuple, list)):
+            rep = tf.concat(rep, axis=-1)
 
-#         hidden = self.model(rep)
-#         if self.attention is not None:
-#             hidden = self.attention(query=query, key=key, value=hidden)
+        hidden = self.model(rep)
+        if self.attention is not None:
+            hidden = self.attention(query=query, key=key, value=hidden)
     
-#         if not self.keepdims:
-#             hidden = tf.reduce_mean(hidden, axis=1)
-
-#         return hidden
+        if not self.keepdims:
+            hidden = tf.reduce_mean(hidden, axis=1)
+        return hidden
 
 
 class Decoder(tfk.layers.Layer):
@@ -45,25 +43,20 @@ class Decoder(tfk.layers.Layer):
         return self.model(input_tensor)
 
 
-class LatentEncoder(tfk.layers.Layer):
+class ExtractMuSigma(tfk.layers.Layer):
     def __init__(self, output_sizes, name='LatentVariable'):
-        super(LatentEncoder, self).__init__(name=name, dynamic=True)
+        super(ExtractMuSigma, self).__init__(name=name, dynamic=True)
         self.model = dense_sequential(output_sizes)
 
     def call(self, rep):
         hidden = self.model(rep)
-        # hidden = tf.reduce_mean(hidden, axis=1)
+        hidden = tf.reduce_mean(hidden, axis=1) # the first axis is the number of samples, remove these, LOOSING INFORMATION
 
-        # changed the hidden layer to be only the representations instead of learning the mu and sigma directly
-        # mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
+        mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
 
-        # sigma = tf.exp(log_sigma)
-
-        mu = tf.reduce_mean(hidden, axis=1) 
-        sigma = tf.reduce_std(hidden, axis=1)
-        # don't need the entire distribution here, because we reparametrize with a normal distribution
-        # dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return mu, sigma
+        sigma = tf.exp(log_sigma)
+        dist = tfp.distributions.Normal(mu, sigma)
+        return dist
 
 
 class NeuralProcess(tfk.Model):
@@ -73,7 +66,8 @@ class NeuralProcess(tfk.Model):
                  dec_output_sizes, name='NeuralProcess'):
         super(NeuralProcess, self).__init__(name=name)
 
-        self.z_encoder_latent = LatentEncoder(z_output_sizes)
+        self.encoder = Encoder(enc_output_sizes)
+        self.z_encoder_latent = ExtractMuSigma(z_output_sizes)
         # self.encoder = Encoder(enc_output_sizes)
         self.decoder = Decoder(dec_output_sizes)#[:-1])
 
@@ -82,18 +76,15 @@ class NeuralProcess(tfk.Model):
         # self.dense_sigma = tfk.layers.Dense(size)
     
     @tf.function
-    def call(self, x, eps): # not passing in eps from anywhere yet atm
-        # some implementations have eps being passed through the decoder separately, not sure what this does
+    def call(self, x):
         context, query = x
 
-        z_mu, z_sigma = self.z_encoder_latent(context)
-
+        r_contexts = self.encoder(context)
+        r_context = tf.mean(r_contexts, axis=1) # aggregate the representations 
+        z_dist = self.z_encoder_latent(r_context)
+        
         # if we directly sample in the forward pass from the distribution, how will this be backpropogated?
-        # latent = z_dist.sample()
-
-        # dist = tfp.distributions.MultivariateNormalDiag(loc=tf.zeros(z_mu.shape), scale_diag=tf.ones(z_sigma.shape))
-        # eps = dist.sample()
-        latent = eps * z_sigma + z_mu # something like this is needed so that the backprop has a deterministic connection through the learned params
+        latent = z_dist.sample()
         
         latent = tf.tile(tf.expand_dims(latent, 1),
                           [1, tf.shape(query)[1], 1])

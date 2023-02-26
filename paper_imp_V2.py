@@ -168,8 +168,10 @@ def compute_loss(model, x):
     log_prob = dist.log_prob(target_y)
     log_prob = tf.reduce_sum(log_prob)
 
-    prior = model.z_encoder_latent(context)
-    posterior = model.z_encoder_latent(tf.concat([query, target_y], axis=1))
+    reps = model.encoder(context)
+    prior = model.z_encoder_latent(reps)
+    reps_post = model.encoder(tf.concat([query, target_y], axis=1))
+    posterior = model.z_encoder_latent(reps_post)
 
     kl = tfp.distributions.kl_divergence(prior, posterior)
     kl = tf.reduce_sum(kl)
