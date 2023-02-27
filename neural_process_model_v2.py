@@ -68,7 +68,7 @@ class NeuralProcess(tfk.Model):
                  dec_output_sizes, name='NeuralProcess'):
         super(NeuralProcess, self).__init__(name=name)
 
-        self.z_encoder_latent = LatentEncoder(z_output_sizes)
+        # self.z_encoder_latent = LatentEncoder(z_output_sizes)
         self.encoder = Encoder(enc_output_sizes)
         self.decoder = Decoder(dec_output_sizes)#[:-1])
 
@@ -80,12 +80,12 @@ class NeuralProcess(tfk.Model):
     def call(self, x):
         context, query = x
 
-        z_dist = self.z_encoder_latent(context)
-        latent = z_dist.sample()
+        # z_dist = self.z_encoder_latent(context)
+        # latent = z_dist.sample()
         
         context = self.encoder(context)
 
-        context = tf.concat([latent, context], axis=-1)
+        # context = tf.concat([latent, context], axis=-1)
         context = tf.tile(tf.expand_dims(context, 1),
                           [1, tf.shape(query)[1], 1])
 

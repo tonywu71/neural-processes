@@ -64,23 +64,23 @@ model = NeuralProcess(z_output_sizes, enc_output_sizes, dec_output_sizes)
 #%%
 
 
-def loss(target_y, pred_y):
-    mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-    dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+# def loss(target_y, pred_y):
+#     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+#     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
 
-    log_prob = dist.log_prob(target_y)
-    log_prob = tf.reduce_sum(log_prob)
+#     log_prob = dist.log_prob(target_y)
+#     log_prob = tf.reduce_sum(log_prob)
 
-    context, query = model.inputs # TODO how do we get this context & query? its from the input data 
-    prior = model.z_encoder_latent(context) # TODO can we even call methods of the model in the loss?
-    posterior = model.z_encoder_latent(tf.concat([query, target_y], axis=-1))
+#     context, query = model.inputs # TODO how do we get this context & query? its from the input data 
+#     prior = model.z_encoder_latent(context) # TODO can we even call methods of the model in the loss?
+#     posterior = model.z_encoder_latent(tf.concat([query, target_y], axis=-1))
 
-    kl = tfp.distributions.kl_divergence(prior, posterior)
-    kl = tf.reduce_sum(kl)
+#     kl = tfp.distributions.kl_divergence(prior, posterior)
+#     kl = tf.reduce_sum(kl)
 
-    # maximize variational lower bound
-    loss = -log_prob + kl
-    return loss
+#     # maximize variational lower bound
+#     loss = -log_prob + kl
+#     return loss
 
 
 # def loss(target_y, pred_y):
@@ -89,7 +89,7 @@ def loss(target_y, pred_y):
 #     return -dist.log_prob(target_y)
 
 
-model.compile(loss=loss, optimizer='adam')
+#model.compile(loss=loss, optimizer='adam')
 
 
 # %%
