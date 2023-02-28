@@ -1,10 +1,14 @@
 import io
+
 import tensorflow as tf
 import tensorflow_probability as tfp
-import matplotlib.pyplot as plt
-
 tfd = tfp.distributions
 tfk = tf.keras
+
+import matplotlib.pyplot as plt
+
+from utils.gaussian_processes.plot_gp_utils import plot_mean_with_std
+
 
 
 def plot_to_image(figure):
@@ -25,28 +29,25 @@ def plot_to_image(figure):
 
 
 def plot_regression(target_x, target_y, context_x, context_y, pred_y):
-    # Plot everything
-    mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5))
-    ax.plot(target_x[0], mu[0], 'b', linewidth=2)
-    ax.plot(target_x[0], target_y[0], 'k:', linewidth=2)
-    ax.plot(context_x[0], context_y[0], 'ko', markersize=10)
-    ax.fill_between(
-        target_x[0, :, 0],
-        mu[0, :, 0] - sigma[0, :, 0],
-        mu[0, :, 0] + sigma[0, :, 0],
-        alpha=0.2,
-        facecolor='#65c9f7',
-        interpolate=True)
-
-    # Make the plot pretty
-    plt.yticks([-2, 0, 2], fontsize=16)
-    plt.xticks([-2, 0, 2], fontsize=16)
-    ax.set_ylim(-4, 4)
-    ax.grid('off')
-    ax = plt.gca()
-    ax.set_facecolor('white')
+    fig, ax = plt.subplots(figsize=(8, 5))
+    
+    
+    x_val = tf.squeeze(target_x[0, :, :])
+    pred_y = tf.squeeze(pred_y[0, :, :])
+    y_true = tf.squeeze(target_y[0, :, :])
+    
+    idx_x_sorted = tf.argsort(x_val)
+    
+    x_val = tf.gather(x_val, idx_x_sorted)
+    mean = tf.gather(pred_y[:, 0], idx_x_sorted)
+    std = tf.gather(pred_y[:, 1], idx_x_sorted)
+    y_true = tf.gather(y_true, idx_x_sorted)
+    
+    plot_mean_with_std(x=x_val, mean=mean, std=std, y_true=y_true, ax=ax)
+    ax.scatter(context_x[0, :, :], context_y[0, :, :])  # type: ignore
+    
     return fig
+
 
 def plot_image(target_x, target_y, context_x, context_y, pred_y):
     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
@@ -69,6 +70,7 @@ def plot_image(target_x, target_y, context_x, context_y, pred_y):
     axes[1].set_title('Predicted mean')
     axes[2].set_title('Predicted variance')
     return fig
+
 
 def plot_image_celeb(target_x, target_y, context_x, context_y, pred_y, img_size=32):
 	mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
@@ -94,6 +96,7 @@ def plot_image_celeb(target_x, target_y, context_x, context_y, pred_y, img_size=
 	axes[2].set_title('Predicted variance')
 	return fig
 
+
 class PlotCallback(tfk.callbacks.Callback):
     def __init__(self, logdir, ds, task):
         super(PlotCallback, self).__init__()
@@ -109,6 +112,7 @@ class PlotCallback(tfk.callbacks.Callback):
         self.test_ds = ds
         self.test_it = iter(self.test_ds)
 
+
     def get_next_data(self):
         try:
             next_data = next(self.test_it)
@@ -116,6 +120,7 @@ class PlotCallback(tfk.callbacks.Callback):
             self.test_it = iter(self.test_ds)
             next_data = next(self.test_it)
         return next_data
+
 
     def on_epoch_end(self, epoch, logs=None):
         (context_x, context_y, target_x), target_y = self.get_next_data()
