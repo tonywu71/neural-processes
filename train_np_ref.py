@@ -10,8 +10,8 @@ from functools import partial
 #tf.config.set_visible_devices([], 'GPU')
 
 # %%
-from neural_process_model_v2 import NeuralProcess
-from gp_curves import GPCurvesGenerator, plot_func
+from neural_process_model import NeuralProcess
+from utils.gp_curves import GPCurvesGenerator, plot_func
 
 # %%
 BATCH_SIZE = 128
@@ -59,40 +59,8 @@ model = NeuralProcess(z_output_sizes, enc_output_sizes, dec_output_sizes)
 
 
 
-#opt = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
-#%%
-
-
-# def loss(target_y, pred_y):
-#     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-#     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-
-#     log_prob = dist.log_prob(target_y)
-#     log_prob = tf.reduce_sum(log_prob)
-
-#     context, query = model.inputs # TODO how do we get this context & query? its from the input data 
-#     prior = model.z_encoder_latent(context) # TODO can we even call methods of the model in the loss?
-#     posterior = model.z_encoder_latent(tf.concat([query, target_y], axis=-1))
-
-#     kl = tfp.distributions.kl_divergence(prior, posterior)
-#     kl = tf.reduce_sum(kl)
-
-#     # maximize variational lower bound
-#     loss = -log_prob + kl
-#     return loss
-
-
-# def loss(target_y, pred_y):
-#     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-#     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-#     return -dist.log_prob(target_y)
-
-
-#model.compile(loss=loss, optimizer='adam')
-
-
-# %%
+# %% =================== Callbacks ===================
 
 
 
@@ -155,9 +123,25 @@ writer = tf.summary.create_file_writer(log_dir)
 plotter = PlotCallback(logdir=log_dir, ds=test_ds)
 callbacks = [plotter]
 
-#%%
+
+
+#%% ===================== Train with CNP loss ========================
+
+# def loss(target_y, pred_y):
+#     mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+#     dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+#     return -dist.log_prob(target_y)
+
+
+# model.compile(loss=loss, optimizer='adam')
 
 # model.fit(train_ds, epochs=20, callbacks=callbacks)
+
+
+
+
+
+#%% =================== Train with NP loss ===========================
 
 def compute_loss(model, x):
     (context, query), target_y = x
@@ -196,7 +180,6 @@ def train_step(model, x, optimizer):
 for callback in callbacks: callback.model = model
 
 
-#%%
 
 from tqdm import tqdm
 optimizer = tf.keras.optimizers.Adam(1e-3)

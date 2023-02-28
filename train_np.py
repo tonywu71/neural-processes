@@ -9,7 +9,7 @@ import tensorflow_probability as tfp
 from dataloader.load_regression_data_uniform import RegressionDataGeneratorUniform
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
-from neural_process_model_v2 import NeuralProcess
+from neural_process_model import NeuralProcess
 from utility import PlotCallback
 
 tfk = tf.keras
