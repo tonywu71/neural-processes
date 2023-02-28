@@ -11,13 +11,20 @@ tfk = tfp.math.psd_kernels
 
 
 def get_mean_fn(df_observed: pd.DataFrame, y_col: str) -> Callable:
+    """Returns a function that computes the mean of a Gaussian process
+    based on the mean of the observations."""
     observations_mean = tf.constant(
         [np.mean(df_observed[y_col].values)], dtype=tf.float64)
     mean_fn = (lambda _: observations_mean)
     return mean_fn
 
 
-def get_kernel() -> Tuple[tfp.math.psd_kernels.PositiveSemidefiniteKernel, Dict[str, tfp.util.TransformedVariable]]:
+def get_kernel() -> Tuple[tfp.math.psd_kernels.PositiveSemidefiniteKernel,
+                          Dict[str, tfp.util.TransformedVariable]]:
+    """Returns a tuple of a kernel and a dictionary of trainable parameters.
+    Note that the kernel is defined as a sum of a smooth kernel and a local periodic kernel,
+    thus it might not be suitable for all datasets.
+    """
     # Define the kernel with trainable parameters. 
     # Note we transform some of the trainable variables to ensure
     #  they stay positive.

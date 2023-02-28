@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Tuple, Callable, Iterator
+from typing import Optional, Tuple, Callable, Iterator
 
 import pandas as pd
 
@@ -12,51 +12,65 @@ from dataloader.regression_data_generator_base import RegressionDataGeneratorBas
 from utils.gaussian_processes.gp_model import GPModel
 
 
-def gen(gp_model: GPModel,
-        df_predict: pd.DataFrame,
+DEFAULT_TESTING_NUM_TARGET = 400
+
+
+def gen_from_gp(
+        gp_model: GPModel,
         batch_size,
         iterations,
         min_num_context,
         max_num_context,
-        min_num_target) -> Iterator[Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]]:          
-    
-    gp_posterior_predict = gp_model.get_gp_posterior_predict(df_predict)
+        min_num_target,
+        max_num_target,
+        min_x_val_uniform,
+        max_x_val_uniform,
+        testing) -> Iterator[Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]]:     
+    """Generates a batch of data for regression based on an instance of GPModel
+    (i.e. a fitted Gaussian Process)."""     
     
     for _ in range(iterations):
-        num_total_points = len(gp_posterior_predict.index_points)
-        
+        # NB: The distribution of y_values is the same for each iteration (i.e. the the one defined by
+        #     the arbitrary GP) but the sampled x_values do differ (in terms of size and values).
         num_context = tf.random.uniform(shape=[],
-                            minval=min_num_context,
-                            maxval=max_num_context,
-                            dtype=tf.int32)
-        
-        num_target = tf.random.uniform(shape=[],
-                                    minval=min_num_target,
-                                    maxval=num_total_points-num_context,
+                                    minval=min_num_context,
+                                    maxval=max_num_context,
                                     dtype=tf.int32)
+
+        if not testing:
+            num_target = tf.random.uniform(shape=[],
+                                        minval=min_num_target,
+                                        maxval=max_num_target,
+                                        dtype=tf.int32)
+        else:
+            # If testing, we want to use a fixed number of points for the target
+            num_target = DEFAULT_TESTING_NUM_TARGET
         
-        x_values = tf.tile(tf.reshape(gp_posterior_predict.index_points,
-                                      shape=(1, num_total_points, -1)),
-                           multiples=(batch_size, 1, 1))
-        y_values = tf.expand_dims(gp_posterior_predict.sample(sample_shape=(batch_size,)), axis=-1)
+        num_total_points = num_context + num_target
+        
+        x_values = tf.random.uniform(shape=(batch_size, num_total_points, 1),
+                                     minval=min_x_val_uniform,
+                                     maxval=max_x_val_uniform,
+                                     dtype=tf.float64)  # to ensure compatibility with GPModel (which uses float64)
+        
+        y_values = tf.expand_dims(gp_model.sample(x_values=x_values), axis=-1)
+        
+        idx = tf.random.shuffle(tf.range(num_total_points))
         
         # Select the targets which will consist of the context points
         # as well as some new target points
-        idx = tf.random.shuffle(tf.range(num_total_points))
-        
-        # Select the observations (randomly select num_context examples from x_values and y_values)
-        context_x = tf.gather(x_values, idx[:num_context], axis=1)
-        context_y = tf.gather(y_values, idx[:num_context], axis=1)
-        
-        target_x = tf.gather(x_values, idx[:num_target+num_context], axis=1)
-        target_y = tf.gather(y_values, idx[:num_target+num_context], axis=1)
-        
+        target_x = x_values[:, :, :]
+        target_y = y_values[:, :, :]
+
+        # Select the observations
+        context_x = tf.gather(x_values, indices=idx[:num_context], axis=1)
+        context_y = tf.gather(y_values, indices=idx[:num_context], axis=1)
+
         yield (context_x, context_y, target_x), target_y
 
 
 class RegressionDataGenerator(RegressionDataGeneratorBase):
-    """Class that uses load_regression_data to create datasets.
-    """
+    """Class that generates regression data from a Gaussian Process defined by a GPModel instance."""
     def __init__(self,
                  gp_model: GPModel,
                  df_predict: pd.DataFrame,
@@ -64,9 +78,12 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
                  batch_size: int=32,
                  min_num_context: int=3,
                  max_num_context: int=10,
-                 min_num_target: int=2):
-        super().__init__(iterations=iterations, batch_size=batch_size)
-        
+                 min_num_target: int=2,
+                 max_num_target: int=10,
+                 min_x_val_uniform: Optional[int]=None,
+                 max_x_val_uniform: Optional[int]=None,
+                 n_iterations_test: Optional[int]=None):
+
         self.gp_model = gp_model
         assert self.gp_model.is_fitted, "GP model must be fitted before using it to generate data."
         
@@ -77,40 +94,37 @@ class RegressionDataGenerator(RegressionDataGeneratorBase):
         assert self.x_col in self.df_predict.columns, f"df_predict must contain column {self.x_col}"
         assert self.y_col in self.df_predict.columns, f"df_predict must contain column {self.y_col}"
         
-        self.num_total_points = len(self.df_predict)
+        # If min_x_val_uniform and max_x_val_uniform are not specified, use the min and max values
+        # from the training data (cf df_observed):
+        if min_x_val_uniform is None:
+            min_x_val_uniform = self.df_predict[self.x_col].min()  # type: ignore
+        if max_x_val_uniform is None:
+            max_x_val_uniform = self.df_predict[self.x_col].max()  # type: ignore
         
-        self.min_num_context = min_num_context
-        self.max_num_context = max_num_context
-        self.min_num_target = min_num_target
-        
-        assert min_num_context <= max_num_context <= self.num_total_points, f"min_num_context={min_num_context} must be <= max_num_context={max_num_context} <= num_total_points={self.num_total_points}"
-        assert self.min_num_target <= self.num_total_points, f"min_num_target={self.min_num_target} must be <= num_total_points={self.num_total_points}"
+        super().__init__(iterations=iterations,
+                         batch_size=batch_size,
+                         min_num_context=min_num_context,
+                         max_num_context=max_num_context,
+                         min_num_target=min_num_target,
+                         max_num_target=max_num_target,
+                         min_x_val_uniform=min_x_val_uniform,  # type: ignore
+                         max_x_val_uniform=max_x_val_uniform,  # type: ignore
+                         n_iterations_test=n_iterations_test)
         
         self.train_ds, self.test_ds = self.load_regression_data()
+        self.test_ds = self.test_ds.take(self.n_iterations_test)
+        
 
-
-    def get_gp_curve_generator(self) -> Callable:
-        return partial(gen,
+    def get_gp_curve_generator(self, testing: bool=False) -> Callable:
+        """Returns a generator function that generates regression data from a Gaussian Process."""
+        return partial(gen_from_gp,
                        gp_model=self.gp_model,
-                       df_predict=self.df_predict,
                        batch_size=self.batch_size,
                        iterations=self.iterations,
                        min_num_context=self.min_num_context,
                        max_num_context=self.max_num_context,
-                       min_num_target=self.min_num_target)
-    
-    
-    def load_regression_data(self) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
-        train_ds = tf.data.Dataset.from_generator(
-            self.get_gp_curve_generator(),
-            output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-        )
-        test_ds = tf.data.Dataset.from_generator(
-            self.get_gp_curve_generator(),
-            output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
-        )
-        
-        train_ds = train_ds.prefetch(tf.data.experimental.AUTOTUNE)  # No need to shuffle as the data is already generated randomly
-        test_ds = test_ds.prefetch(tf.data.experimental.AUTOTUNE)
-        
-        return train_ds, test_ds
+                       min_num_target=self.min_num_target,
+                       max_num_target=self.max_num_target,
+                       min_x_val_uniform=self.min_x_val_uniform,
+                       max_x_val_uniform=self.max_x_val_uniform,
+                       testing=testing)
