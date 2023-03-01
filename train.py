@@ -24,7 +24,9 @@ tfd = tfp.distributions
 
 # args = parser.parse_args()
 
-args = argparse.Namespace(epochs=1, batch=32, task="regression", num_context=1, uniform_sampling=False)
+args = argparse.Namespace(epochs=100, batch=32, task="regression", num_context=1, uniform_sampling=False)
+# Note that num_context is not used for the 1D regression task.
+
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -47,32 +49,20 @@ if args.task == 'mnist':
         dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(target_y)
 
+
 elif args.task == 'regression':
     data_generator = RegressionDataGeneratorArbitraryGP(
-        iterations=10,
-        batch_size=16,
+        iterations=25,
+        batch_size=BATCH_SIZE,
         min_num_context=3,
-        max_num_context=20,
+        max_num_context=40,
         min_num_target=2,
-        max_num_target=10,
+        max_num_target=40,
         min_x_val_uniform=-2,
         max_x_val_uniform=2,
         kernel_length_scale=0.4
     )
     train_ds, test_ds = data_generator.load_regression_data()
-
-    # Model architecture
-    encoder_dims = [128, 128, 128, 128]
-    decoder_dims = [128, 128, 2]
-
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
-
-elif args.task == 'celeb':
-    train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
 
     # Model architecture
     encoder_dims = [500, 500, 500, 500]
@@ -84,9 +74,26 @@ elif args.task == 'celeb':
         dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(target_y)
 
+
+elif args.task == 'celeb':
+    train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
+                                   uniform_sampling=args.uniform_sampling)
+
+    # Model architecture
+    encoder_dims = [500, 500, 500, 500]
+    decoder_dims = [500, 500, 500, 2]
+
+    def loss(target_y, pred_y):
+        # Get the distribution
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+        return -dist.log_prob(target_y)
+
+
 # Compile model
 model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
 model.compile(loss=loss, optimizer='adam')
+
 
 # Callbacks
 time = datetime.now().strftime('%Y%m%d-%H%M%S')
