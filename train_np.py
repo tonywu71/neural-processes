@@ -6,11 +6,10 @@ from datetime import datetime
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from dataloader.load_regression_data_uniform import RegressionDataGeneratorUniform
-from dataloader.load_mnist import load_mnist
-from dataloader.load_celeb import load_celeb
+import sys
+sys.path.append('example-cnp/')
+from utils import get_gp_curve_generator
 from neural_process_model import NeuralProcess
-from utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
@@ -35,8 +34,23 @@ EPOCHS = args.epochs
 model_path = f'.data/model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 
-data_generator = RegressionDataGeneratorUniform()
-train_ds, test_ds = data_generator.load_regression_data(batch_size=BATCH_SIZE)
+train_ds = tf.data.Dataset.from_generator(
+    get_gp_curve_generator(
+        iterations=250,
+        batch_size=BATCH_SIZE,
+        max_num_context=10,
+        testing=False),
+    output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
+)
+test_ds = tf.data.Dataset.from_generator(
+    get_gp_curve_generator(
+        iterations=250,
+        batch_size=1,
+        testing=True),
+    output_types=((tf.float32, tf.float32, tf.float32), tf.float32)
+)
+
+
 
 # Model architecture
 z_output_sizes = [128, 128, 128, 128, 256]
@@ -60,8 +74,8 @@ time = datetime.now().strftime('%Y%m%d-%H%M%S')
 log_dir = os.path.join('.', 'logs', 'np', time)
 writer = tf.summary.create_file_writer(log_dir)
 #plotter = PlotCallback(logdir=log_dir, ds=test_ds)
-plot_clbk = PlotCallback(logdir=log_dir, ds=test_ds, task=args.task)
-callbacks = [plot_clbk]
+#plot_clbk = PlotCallback(logdir=log_dir, ds=test_ds, task=args.task)
+callbacks = []
 
 
 #%%
