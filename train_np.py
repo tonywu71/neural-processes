@@ -111,9 +111,8 @@ writer = tf.summary.create_file_writer(log_dir)
 #     log_dir=log_dir, update_freq='batch')
 plot_clbk = PlotCallback(logdir=log_dir, ds=test_ds, task=args.task)
 cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=model_path,
-                                                 save_weights_only=True,
-                                                 verbose=1)
-callbacks = [plot_clbk]#, cp_callback]
+                                                 save_weights_only=True)
+callbacks = [plot_clbk, cp_callback]
 
 
 #%%
@@ -141,12 +140,14 @@ for callback in callbacks: callback.model = model
 
 #%%
 
-
-
 from tqdm import tqdm
 optimizer = tf.keras.optimizers.Adam(1e-3)
 
-epochs = 15
+
+
+#%%
+
+epochs = 60
 for epoch in range(1, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
@@ -154,15 +155,16 @@ for epoch in range(1, epochs + 1):
         train_loss = tf.keras.metrics.Mean()
         for idx, train_x in enumerate(train_ds):
 
-            # if idx == 10:
+            # if idx == 5:
             #     tf.profiler.experimental.start(log_dir)
             #     print("profiling!")
-            #tf.summary.trace_on(graph=True, profiler=True)
+            #tf.summary.trace_on(graph=True) # Uncomment to trace the computational graph
 
             loss = train_step(model, train_x, optimizer)
 
-            # if idx == 20:
+            # if idx == 5:
             #     tf.profiler.experimental.stop(log_dir)
+            #     print("profiling end!")
 
             train_loss(loss)
             tepoch.set_postfix({'Batch': idx, 'Train Loss': train_loss.result().numpy()})
@@ -170,9 +172,8 @@ for epoch in range(1, epochs + 1):
             with writer.as_default():
                 tf.summary.scalar('train_loss', train_loss.result(), step=epoch*TRAINING_ITERATIONS + idx)
                 # tf.summary.trace_export(
-                #     name=f"NP_trace",
-                #     step=idx,
-                #     profiler_outdir=log_dir)
+                #     name=f"NP_trace {idx}",
+                #     step=idx) # Uncomment to trace the computational graph
 
             
 

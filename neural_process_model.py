@@ -20,6 +20,7 @@ class Encoder(tfk.layers.Layer):
         self.model = dense_sequential(output_sizes)
         self.hidden_output_shape = output_sizes[-1]
 
+    @tf.function(reduce_retracing=True)
     def call(self, rep):
         batch_size, observation_points, context_dim = (tf.shape(rep)[0], tf.shape(rep)[1], tf.shape(rep)[2])
         hidden = tf.reshape(rep, shape=(batch_size * observation_points, context_dim))
@@ -38,6 +39,7 @@ class Decoder(tfk.layers.Layer):
         super(Decoder, self).__init__(name=name)
         self.model = dense_sequential(output_sizes)
     
+    @tf.function(reduce_retracing=True)
     def call(self, context, tx):
         input_tensor = tf.concat((context, tx), axis=-1)
 
@@ -56,6 +58,7 @@ class LatentEncoder(tfk.layers.Layer):
         super(LatentEncoder, self).__init__(name=name)
         self.model = Encoder(output_sizes, name='LatentSequential')
 
+    @tf.function(reduce_retracing=True)
     def call(self, rep):
         hidden = self.model(rep)
 
@@ -65,6 +68,7 @@ class LatentEncoder(tfk.layers.Layer):
         sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
 
         dist = tfp.distributions.Normal(mu, sigma)
+        
         return dist
 
 
@@ -83,15 +87,17 @@ class NeuralProcess(tfk.Model):
         # self.dense_mu = tfk.layers.Dense(size)
         # self.dense_sigma = tfk.layers.Dense(size)
     
+    @tf.function(reduce_retracing=True)
     def call(self, x):
         # `context_x` shape (batch_size, observation_points, x_dim)
         # `context_y` shape (batch_size, observation_points, y_dim)
         context_x, context_y, query = x
         context = tf.concat((context_x, context_y), axis=-1)
         # `context` shape (batch_size, observation_points, x_dim + y_dim)
-
+        
         z_dist = self.z_encoder_latent(context)
         latent = z_dist.sample()
+        
         
         context = self.encoder(context)
 
@@ -111,7 +117,7 @@ class NeuralProcess(tfk.Model):
 
         return tf.concat((mu, sigma), axis=-1)#(dist, mu, sigma) # tf.concat([mu, sigma], axis=-1) #dist, mu, sigma
 
-    @tf.function
+    @tf.function(reduce_retracing=True)
     def compute_loss(self, x):
         (context_x, context_y, query), target_y = x
         context = tf.concat((context_x, context_y), axis=2)
