@@ -2,7 +2,7 @@
 import os
 import argparse
 from datetime import datetime
-
+from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -13,7 +13,8 @@ from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGene
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
 
-from neural_process_model import NeuralProcess
+from neural_process_model_hybrid import NeuralProcessHybrid
+from neural_process_model_latent import NeuralProcessLatent
 #from model import ConditionalNeuralProcess as NeuralProcess
 from utility import PlotCallback
 
@@ -30,14 +31,14 @@ tfd = tfp.distributions
 
 #tf.config.set_visible_devices([], 'GPU')
 
-args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True)
+args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='LNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 
 
-model_path = f'.data/model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
+model_path = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 TRAINING_ITERATIONS = int(100) # 1e5
 TEST_ITERATIONS = TRAINING_ITERATIONS
@@ -63,18 +64,11 @@ elif args.task == 'regression':
         kernel_length_scale=0.4
     )
     train_ds, test_ds = data_generator.load_regression_data()
-    # train_ds = train_ds.prefetch(5)
-    # test_ds = test_ds.prefetch(5)
 
     # Model architecture
     z_output_sizes = [500, 500, 500, 500]
     enc_output_sizes = [500, 500, 500, 1000]
     dec_output_sizes = [500, 500, 500, 2]
-
-    # z_output_sizes = [128, 128, 128, 128, 256]
-    # enc_output_sizes = [128, 128, 128, 128]
-    # dec_output_sizes = [128, 128, 2]
-    
 
     
 
@@ -97,23 +91,23 @@ elif args.task == 'celeb':
 
 #%%
 
-# Compile model
-model = NeuralProcess(z_output_sizes, enc_output_sizes, dec_output_sizes)
+# Define NP Model
+if args.model == 'LNP':
+    model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
+elif args.model == 'HNP':
+    model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
 
-
-#%%
+optimizer = tf.keras.optimizers.Adam(1e-3)
 
 # Callbacks
 time = datetime.now().strftime('%Y%m%d-%H%M%S')
-log_dir = os.path.join('.', 'logs', 'np', args.task, time)
+log_dir = os.path.join('.', 'logs', 'np', args.model, args.task, time)
 writer = tf.summary.create_file_writer(log_dir)
-# tensorboard_clbk = tfk.callbacks.TensorBoard(
-#     log_dir=log_dir, update_freq='batch')
 plot_clbk = PlotCallback(logdir=log_dir, ds=test_ds, task=args.task)
 cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=model_path,
                                                  save_weights_only=True)
 callbacks = [plot_clbk, cp_callback]
-
+for callback in callbacks: callback.model = model
 
 #%%
 
@@ -135,20 +129,11 @@ def train_step(model, x, optimizer):
   return tf.math.reduce_mean(loss)
 
 
-for callback in callbacks: callback.model = model
-
-
-#%%
-
-from tqdm import tqdm
-optimizer = tf.keras.optimizers.Adam(1e-3)
-
-
 
 #%%
 
 epochs = 60
-for epoch in range(1, epochs + 1):
+for epoch in range(19, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 
@@ -194,44 +179,3 @@ for epoch in range(1, epochs + 1):
 #%%
 
 
-def loss(target_y, pred_y):
-    # Get the distribution
-    mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-    dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-    return -dist.log_prob(target_y)
-
-tensorboard_clbk = tfk.callbacks.TensorBoard(
-    log_dir=log_dir, update_freq='batch')#, profile_batch = '500,520')
-callbacks.append(tensorboard_clbk)
-
-opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
-model.compile(loss=loss, optimizer=opt)
-
-# %%
-
-model.fit(train_ds, epochs=EPOCHS, callbacks=callbacks)
-
-#%%
-
-i = 0
-it = iter(test_ds)
-while True:
-    i += 1
-    # for x in test_ds:
-    
-    x = next(it, None)
-    if x == None:
-        it = iter(test_ds)
-        x = next(it)
-    (context_x, context_y, query), target_y = x
-    x_shape = tf.shape(context_x)
-    y_shape = tf.shape(context_y)
-    q_shape = tf.shape(query)
-    t_shape = tf.shape(target_y)
-
-    target_context = tf.concat([context_x, context_y], axis=-1)
-    ts = tf.shape(target_context)
-
-    if (x_shape[1] != y_shape[1]) or (ts[-1] != 2) or (q_shape[1] != t_shape[1]):
-        print(f"x:{x_shape}     y:{y_shape}      i={i}      t: {ts}     {q_shape}       {t_shape}")
-#%%

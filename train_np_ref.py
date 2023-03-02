@@ -10,7 +10,7 @@ from functools import partial
 #tf.config.set_visible_devices([], 'GPU')
 
 # %%
-from neural_process_model import NeuralProcess
+from neural_process_model_hybrid import NeuralProcessHybrid
 from utils.gp_curves import GPCurvesGenerator, plot_func
 
 # %%
@@ -55,7 +55,7 @@ z_output_sizes = [128, 128, 128, 128, 256]
 enc_output_sizes = [128, 128, 128, 128]
 dec_output_sizes = [128, 128, 2]
 
-model = NeuralProcess(z_output_sizes, enc_output_sizes, dec_output_sizes)
+model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
 
 
 

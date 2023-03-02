@@ -72,12 +72,12 @@ class LatentEncoder(tfk.layers.Layer):
         return dist
 
 
-class NeuralProcess(tfk.Model):
+class NeuralProcessHybrid(tfk.Model):
     def __init__(self,
                  z_output_sizes,
                  enc_output_sizes,
                  dec_output_sizes, name='NeuralProcess'):
-        super(NeuralProcess, self).__init__(name=name)
+        super(NeuralProcessHybrid, self).__init__(name=name)
 
         self.z_encoder_latent = LatentEncoder(z_output_sizes)
         self.encoder = Encoder(enc_output_sizes)
@@ -140,3 +140,10 @@ class NeuralProcess(tfk.Model):
         # maximize variational lower bound
         loss = -log_prob + kl
         return loss
+
+    @tf.function(reduce_retracing=True)
+    def compute_loss_cnp(self, x):
+        pred_y = self(x[0])
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=2)
+        dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+        return -dist.log_prob(x[1])
