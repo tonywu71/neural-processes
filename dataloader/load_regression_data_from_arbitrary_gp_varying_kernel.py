@@ -12,7 +12,8 @@ from dataloader.regression_data_generator_base import RegressionDataGeneratorBas
 def gen_from_arbitrary_gp(
         batch_size: int,
         iterations: int,
-        kernel_length_scale: float,
+        min_kernel_length_scale: float,
+        max_kernel_length_scale: float,
         min_num_context: int,
         max_num_context: int,
         min_num_target: int,
@@ -27,10 +28,17 @@ def gen_from_arbitrary_gp(
     - Both num_context and num_target are drawn from uniform distributions
     - The (num_context + num_target) x_values are drawn from a uniform distribution
     - A Gaussian Process with predefined kernel and a null mean function is used to generate the y_values from the x_values
-    """    
-    kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
+    """
     
     for _ in range(iterations):
+        # Set kernel length scale:
+        kernel_length_scale = tf.random.uniform(shape=[],
+                                                minval=min_kernel_length_scale,  # type: ignore
+                                                maxval=max_kernel_length_scale,
+                                                dtype=tf.dtypes.float32)
+        kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
+        
+        
         # NB: The distribution of y_values is the same for each iteration (i.e. the the one defined by
         #     the arbitrary GP) but the sampled x_values do differ (in terms of size and values).
         num_context = tf.random.uniform(shape=[],
@@ -77,7 +85,7 @@ def gen_from_arbitrary_gp(
         yield (context_x, context_y, target_x), target_y
 
 
-class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
+class RegressionDataGeneratorArbitraryGPWithVaryingKernel(RegressionDataGeneratorBase):
     """Class that generates a batch of data for regression based on
     the original Conditional Neural Processes paper."""
     def __init__(self,
@@ -90,7 +98,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                  min_x_val_uniform: int=-2,
                  max_x_val_uniform: int=2,
                  n_iterations_test: Optional[int]=None,
-                 kernel_length_scale: float=0.4):
+                 min_kernel_length_scale: float=0.1,
+                 max_kernel_length_scale: float=1.):
         super().__init__(iterations=iterations,
                          batch_size=batch_size,
                          min_num_context=min_num_context,
@@ -101,7 +110,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                          max_x_val_uniform=max_x_val_uniform,
                          n_iterations_test=n_iterations_test)
         
-        self.kernel_length_scale = kernel_length_scale
+        self.min_kernel_length_scale = min_kernel_length_scale
+        self.max_kernel_length_scale = max_kernel_length_scale
         
         self.train_ds, self.test_ds = self.load_regression_data()
 
@@ -112,7 +122,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
         return partial(gen_from_arbitrary_gp,
                        batch_size=self.batch_size,
                        iterations=self.iterations,
-                       kernel_length_scale=self.kernel_length_scale,
+                       min_kernel_length_scale=self.min_kernel_length_scale,
+                       max_kernel_length_scale=self.max_kernel_length_scale,
                        min_num_context=self.min_num_context,
                        max_num_context=self.max_num_context,
                        min_num_target=self.min_num_target,
