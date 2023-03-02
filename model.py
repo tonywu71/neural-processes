@@ -16,8 +16,6 @@ class Encoder(tfkl.Layer):
         # Reshape to parallelize accross all points
         context = tf.concat([context_x, context_y], axis=-1)
         batch_size, observation_points, context_dim = [tf.shape(context)[0], tf.shape(context)[1], tf.shape(context)[2]]
-        #batch_size, observation_points, context_dim = tf.split(tf.shape(context), num_or_size_splits=3)
-        #batch_size, observation_points, context_dim = context.get_shape().as_list()
 
         hidden = tf.reshape(context, shape=(batch_size * observation_points, context_dim))
         # Forward pass through MLP

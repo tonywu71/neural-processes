@@ -118,7 +118,7 @@ class PlotCallback(tf.keras.callbacks.Callback):
 
 
 time = datetime.now().strftime('%Y%m%d-%H%M%S')
-log_dir = os.path.join('.', 'logs', 'np', time)
+log_dir = os.path.join('.', 'logs', 'np',time)
 writer = tf.summary.create_file_writer(log_dir)
 plotter = PlotCallback(logdir=log_dir, ds=test_ds)
 callbacks = [plotter]
