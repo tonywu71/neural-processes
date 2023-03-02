@@ -67,9 +67,9 @@ def gen_from_arbitrary_gp(
         context_x = tf.gather(x_values, indices=idx[:num_context], axis=1)
         context_y = tf.gather(y_values, indices=idx[:num_context], axis=1)
         
-        if tf.shape(context_x) != tf.shape(context_y):
+        if all(tf.shape(context_x) != tf.shape(context_y)):
             continue
-        if tf.shape(target_x) != tf.shape(target_y):
+        if all(tf.shape(target_x) != tf.shape(target_y)):
             continue
         if tf.shape(context_x)[-1] != tf.shape(target_x)[-1]:
             continue
