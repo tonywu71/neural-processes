@@ -38,6 +38,7 @@ class Decoder(tfk.layers.Layer):
     def __init__(self, output_sizes, name='Decoder'):
         super(Decoder, self).__init__(name=name)
         self.model = dense_sequential(output_sizes)
+        self.output_size = output_sizes[-1]
     
     @tf.function(reduce_retracing=True)
     def call(self, context, tx):
@@ -48,7 +49,7 @@ class Decoder(tfk.layers.Layer):
 
         outputs = self.model(input_tensor)
 
-        outputs = tf.reshape(outputs, shape=(batch_size, observation_points, 2))
+        outputs = tf.reshape(outputs, shape=(batch_size, observation_points, self.output_size))
         
         return outputs
 

@@ -31,7 +31,7 @@ tfd = tfp.distributions
 
 #tf.config.set_visible_devices([], 'GPU')
 
-args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=15, batch=128, task='celeb', num_context=10, uniform_sampling=False, model='LNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -41,9 +41,9 @@ EPOCHS = args.epochs
 model_path = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 TRAINING_ITERATIONS = int(100) # 1e5
-TEST_ITERATIONS = TRAINING_ITERATIONS
+TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
 if args.task == 'mnist':
-    train_ds, test_ds = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
     
     # Model architecture
     z_output_sizes = [500, 500, 500, 500]
@@ -54,6 +54,7 @@ if args.task == 'mnist':
 elif args.task == 'regression':
     data_generator = RegressionDataGeneratorArbitraryGP(
         iterations=TRAINING_ITERATIONS,
+        n_iterations_test=TEST_ITERATIONS,
         batch_size=BATCH_SIZE,
         min_num_context=3,
         max_num_context=40,
@@ -61,7 +62,8 @@ elif args.task == 'regression':
         max_num_target=40,
         min_x_val_uniform=-2,
         max_x_val_uniform=2,
-        kernel_length_scale=0.4
+        kernel_length_scale=0.4,
+        
     )
     train_ds, test_ds = data_generator.load_regression_data()
 
@@ -73,13 +75,13 @@ elif args.task == 'regression':
     
 
 elif args.task == 'celeb':
-    train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
                                    uniform_sampling=args.uniform_sampling)
 
     # Model architecture
     z_output_sizes = [500, 500, 500, 500]
     enc_output_sizes = [500, 500, 500, 1000]
-    dec_output_sizes = [500, 500, 500, 2]
+    dec_output_sizes = [500, 500, 500, 6]
 
 
 
@@ -109,31 +111,31 @@ cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=model_path,
 callbacks = [plot_clbk, cp_callback]
 for callback in callbacks: callback.model = model
 
+
 #%%
 
 
-
-
-
 def train_step(model, x, optimizer):
-  """Executes one training step and returns the loss.
+    """Executes one training step and returns the loss.
 
-  This function computes the loss and gradients, and uses the latter to
-  update the model's parameters.
-  """
-  with tf.GradientTape() as tape:
+    This function computes the loss and gradients, and uses the latter to
+    update the model's parameters.
+    """
     
-    loss = model.compute_loss(x)
-  gradients = tape.gradient(loss, model.trainable_variables)
-  optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-  return tf.math.reduce_mean(loss)
+
+
+    with tf.GradientTape() as tape:
+        loss = model.compute_loss(x)
+    gradients = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    return tf.math.reduce_mean(loss)
 
 
 
 #%%
 
 epochs = 60
-for epoch in range(19, epochs + 1):
+for epoch in range(1, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 

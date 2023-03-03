@@ -72,6 +72,7 @@ def load_celeb(batch_size: int=32, num_context_points=None, uniform_sampling = T
             ids = tf.argsort(context_x_norm, axis=1)            # arg sort the norms
             context_x = tf.gather(context_x, ids, axis=1, batch_dims=-1) # re order the context point according to their norms
 
+
         # Sample observation coordinates from target image
         context_y = tf.gather_nd(img, context_x, batch_dims=1) 
         
@@ -79,25 +80,25 @@ def load_celeb(batch_size: int=32, num_context_points=None, uniform_sampling = T
         context_x = tf.cast(context_x, tf.float32)  / float(img_size-1.0) 
         
         # define the grid of x,y coordinates for every pixel
-        cols, rows, chan = tf.meshgrid(tf.range(float(img_size)), tf.transpose(tf.range(float(img_size))), tf.range(float(3)))
+        cols, rows = tf.meshgrid(tf.range(float(img_size)), tf.transpose(tf.range(float(img_size))))
         
         # combine the x,y coordinate arrays into a single array
-        grid = tf.stack([rows, cols, chan], axis=-1)  # (32, 32,3, 3)
+        grid = tf.stack([rows, cols], axis=-1)  # (32, 32, 2)
         
         # copy observation coordinates across the entire batch
         batch_grid = tf.tile(
             tf.expand_dims(grid, axis=0),
-            [batch_size, 1, 1, 1, 1])  # (batch_size, 32, 32, 3, 3)
+            [batch_size, 1, 1, 1])  # (batch_size, 32, 32, 2)
         
         # Normalise the observation coordinates to the range [0,27] to be model size agnostic
-        target_x = tf.reshape(batch_grid, (batch_size, img_size * img_size*3, 3))
+        target_x = tf.reshape(batch_grid, (batch_size, img_size * img_size, 2))
         target_x = target_x  / float(img_size-1.0)  # normalize
 
         # reshape the target image to have shape: batch size, input dim, 1 
-        target_y = tf.reshape(img, (batch_size, img_size * img_size * 3, 1))
+        target_y = tf.reshape(img, (batch_size, img_size * img_size, 3))
         return (context_x, context_y, target_x), target_y
 
-    train_ds = train_ds.batch(batch_size).map(encode)
-    test_ds = test_ds.batch(1).map(encode)
+    train_ds = train_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
+    test_ds = test_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
 
-    return train_ds, test_ds
+    return train_ds, test_ds, int(train_num/batch_size), int((celeb_a.shape[0] - train_num) / batch_size)

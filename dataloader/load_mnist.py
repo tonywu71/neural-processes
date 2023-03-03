@@ -18,7 +18,7 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
         uniform_sampling (bool): Whether to uniformly sample the context points (True) or to order samples (False)
 
     Returns:
-        (train, test) datasets
+        (train dataset, test dataset, train size, test size) 
     """
     mnist = tfds.load('mnist')  # Note: By default, autocaching is enabled on MNIST
     train_ds, test_ds = mnist['train'], mnist['test']
@@ -75,4 +75,4 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
     train_ds = train_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
     test_ds = test_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)  # TODO check if prefetch needed
     
-    return train_ds, test_ds
+    return train_ds, test_ds, int(60000/batch_size), int(10000/batch_size)

@@ -24,7 +24,7 @@ tfd = tfp.distributions
 
 # args = parser.parse_args()
 
-args = argparse.Namespace(epochs=100, batch=32, task="regression", num_context=1, uniform_sampling=False)
+args = argparse.Namespace(epochs=100, batch=128, task="celeb", num_context=10, uniform_sampling=False)
 # Note that num_context is not used for the 1D regression task.
 
 
@@ -33,11 +33,11 @@ BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 
 
-model_path = f'.data/model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
+model_path = f'.data/CNP_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 
 if args.task == 'mnist':
-    train_ds, test_ds = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS  = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
     
     # Model architecture
     encoder_dims = [500, 500, 500, 500]
@@ -76,12 +76,12 @@ elif args.task == 'regression':
 
 
 elif args.task == 'celeb':
-    train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
                                    uniform_sampling=args.uniform_sampling)
 
     # Model architecture
     encoder_dims = [500, 500, 500, 500]
-    decoder_dims = [500, 500, 500, 2]
+    decoder_dims = [500, 500, 500, 6]
 
     def loss(target_y, pred_y):
         # Get the distribution
@@ -112,3 +112,4 @@ callbacks = [tensorboard_clbk, plot_clbk, cp_callback]
 model.fit(train_ds, epochs=EPOCHS, callbacks=callbacks)
 
 
+#%%
