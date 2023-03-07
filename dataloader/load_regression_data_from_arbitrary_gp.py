@@ -102,7 +102,8 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
     def get_gp_curve_generator(self, testing: bool=False) -> Callable:
         """Returns a function that generates a batch of data for regression based on
         the original Conditional Neural Processes paper."""
-        return partial(gen_from_arbitrary_gp,
+        if not testing:
+            return partial(gen_from_arbitrary_gp,
                        batch_size=self.batch_size,
                        iterations=self.iterations,
                        kernel_length_scale=self.kernel_length_scale,
@@ -113,6 +114,18 @@ class RegressionDataGeneratorArbitraryGP(RegressionDataGeneratorBase):
                        min_x_val_uniform=self.min_x_val_uniform,
                        max_x_val_uniform=self.max_x_val_uniform,
                        testing=testing)
+        else:
+            return partial(gen_from_arbitrary_gp,
+                        batch_size=self.batch_size,
+                        iterations=self.n_iterations_test,
+                        kernel_length_scale=self.kernel_length_scale,
+                        min_num_context=self.min_num_context,
+                        max_num_context=self.max_num_context,
+                        min_num_target=self.min_num_target,
+                        max_num_target=self.max_num_target,
+                        min_x_val_uniform=self.min_x_val_uniform,
+                        max_x_val_uniform=self.max_x_val_uniform,
+                        testing=testing)
 
 
 def draw_single_example_from_arbitrary_gp(
