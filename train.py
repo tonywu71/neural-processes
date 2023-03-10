@@ -1,5 +1,6 @@
 #%%
 import os
+#os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
 
@@ -16,24 +17,27 @@ tfk = tf.keras
 tfd = tfp.distributions
 
 
-# # Parse arguments
+# Parse arguments
 # parser = argparse.ArgumentParser()
-# parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
-# parser.add_argument('-b', '--batch', type=int, default=64, help='Batch size for training')
-# parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression)')
-
+# parser.add_argument('-e', '--epochs', type=int, default=120, help='Number of training epochs')
+# parser.add_argument('-b', '--batch', type=int, default=1024, help='Batch size for training')
+# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression)')
+# parser.add_argument('-c', '--num_context', type=int, default=100)
+# parser.add_argument('-u', '--uniform_sampling', type=bool, default=True)
 # args = parser.parse_args()
 
-args = argparse.Namespace(epochs=100, batch=128, task="celeb", num_context=10, uniform_sampling=False)
-# Note that num_context is not used for the 1D regression task.
+#args = argparse.Namespace(epochs=60, batch=1024, task="regression", num_context=100, uniform_sampling=True)
+args = argparse.Namespace(epochs=10, batch=256, task="celeb", num_context=10, uniform_sampling=True)
 
+# Note that num_context is not used for the 1D regression task.
+#tf.config.set_visible_devices([], 'GPU')
 
 # Training parameters
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 
 
-model_path = f'.data/CNP_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
+model_path = f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 
 if args.task == 'mnist':
@@ -52,7 +56,7 @@ if args.task == 'mnist':
 
 elif args.task == 'regression':
     data_generator = RegressionDataGeneratorArbitraryGP(
-        iterations=25,
+        iterations=100,
         batch_size=BATCH_SIZE,
         min_num_context=3,
         max_num_context=40,

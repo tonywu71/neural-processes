@@ -31,7 +31,8 @@ tfd = tfp.distributions
 
 #tf.config.set_visible_devices([], 'GPU')
 
-args = argparse.Namespace(epochs=15, batch=128, task='celeb', num_context=10, uniform_sampling=False, model='LNP')
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
+#args = argparse.Namespace(epochs=15, batch=128, task='celeb', num_context=10, uniform_sampling=False, model='HNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -134,8 +135,8 @@ def train_step(model, x, optimizer):
 
 #%%
 
-epochs = 60
-for epoch in range(1, epochs + 1):
+epochs = args.epochs
+for epoch in range(0, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 
@@ -145,7 +146,7 @@ for epoch in range(1, epochs + 1):
             # if idx == 5:
             #     tf.profiler.experimental.start(log_dir)
             #     print("profiling!")
-            #tf.summary.trace_on(graph=True) # Uncomment to trace the computational graph
+            # tf.summary.trace_on(graph=True) # Uncomment to trace the computational graph
 
             loss = train_step(model, train_x, optimizer)
 

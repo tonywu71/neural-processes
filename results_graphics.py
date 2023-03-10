@@ -1,12 +1,13 @@
 #%%
 import os
+os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
 
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from dataloader.load_regression_data_uniform import RegressionDataGeneratorUniform
+
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
 from model import ConditionalNeuralProcess
@@ -67,19 +68,23 @@ elif args.task == 'celeb':
         return -dist.log_prob(target_y)
     
 model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
-model.compile(loss=loss, optimizer='adam')
+#model.compile(loss=loss, optimizer='adam')
 
 #%%
 
 fig, axs = plt.subplots(3, 4, figsize=(10, 5))
-for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
+#for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
+for i, num_context in enumerate([1,100,1000]):#([1,10,100,1000]):
 
-    model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
-
+    #model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
+    #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
+    model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
+    model.load_weights(f'.data/CNP2_model_celeb_context_{num_context}_uniform_sampling_True/cp-0010.ckpt')
+    
     
 
     if args.task == 'celeb':
-        train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=args.uniform_sampling)
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=args.uniform_sampling)
         img_size=32
 
         it = iter(test_ds)
@@ -112,10 +117,17 @@ for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
         axs[2][i].set_title('Predicted variance')
 
     elif args.task == 'mnist':
-        train_ds, test_ds = load_mnist(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=args.uniform_sampling)
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=args.uniform_sampling)
         img_size=28
-        
-        (context_x, context_y, target_x), target_y = next(iter(test_ds))
+        it = iter(test_ds)
+        next(it)
+        next(it)
+        next(it)
+        next(it)
+        next(it)
+        next(it)
+        next(it)
+        (context_x, context_y, target_x), target_y = next(it)
         pred_y = model((context_x, context_y, target_x))
 
         mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
@@ -139,7 +151,7 @@ for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
         
 
 # %%
-num_context = 10
+num_context = 100
 
 
 
@@ -149,7 +161,8 @@ fig, axs = plt.subplots(3,2, figsize=(6, 5))
 if args.task == 'celeb':
     for i, uniform in enumerate([True, False]):
         model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{uniform}/' + "cp-0015.ckpt")
-        train_ds, test_ds = load_celeb(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=uniform)
+        
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=uniform)
         img_size=32
 
         it = iter(test_ds)
@@ -182,12 +195,22 @@ if args.task == 'celeb':
         axs[2][i].set_title('Predicted variance')
 
 elif args.task == 'mnist':
+    it = iter(test_ds)
+    next(it)
+    next(it)
+    next(it)
+    next(it)
+    next(it)
+    next(it)
+    next(it)
+    tf.random.set_seed(10)
+    
+    (context_x, context_y, target_x), target_y = next(it)
     for i, uniform in enumerate([True, False]):
         model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{uniform}/' + "cp-0015.ckpt")
-        train_ds, test_ds = load_mnist(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=uniform)
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=uniform)
         img_size=28
         
-        (context_x, context_y, target_x), target_y = next(iter(test_ds))
         pred_y = model((context_x, context_y, target_x))
 
         mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
