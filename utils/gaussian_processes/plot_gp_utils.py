@@ -85,6 +85,7 @@ def plot_preds_from_single_example(model: ConditionalNeuralProcess,
                                    target_x: tf.Tensor,
                                    target_y: tf.Tensor,
                                    show_context_points: bool=True,
+                                   show_title: bool=True,
                                    ax: Optional[plt.Axes]=None) -> plt.Axes:
     
     if ax is None:
@@ -114,6 +115,7 @@ def plot_preds_from_single_example(model: ConditionalNeuralProcess,
         ax.scatter(context_x, context_y)  # type: ignore
     
     num_samples = context_x.shape[1]
-    ax.set_title(f"{num_samples = }")
+    if show_title:
+        ax.set_title(f"{num_samples = }")
     
     return ax
