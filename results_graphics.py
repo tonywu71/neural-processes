@@ -74,7 +74,7 @@ model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
 
 fig, axs = plt.subplots(3, 4, figsize=(10, 5))
 #for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
-for i, num_context in enumerate([1,100,1000]):#([1,10,100,1000]):
+for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
 
     #model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
     #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
@@ -89,8 +89,8 @@ for i, num_context in enumerate([1,100,1000]):#([1,10,100,1000]):
 
         it = iter(test_ds)
         next(it)
-        # next(it)
-        # next(it)
+        next(it)
+        next(it)
         (context_x, context_y, target_x), target_y = next(it)
         pred_y = model((context_x, context_y, target_x))
 
