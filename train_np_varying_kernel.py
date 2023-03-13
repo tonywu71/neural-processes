@@ -31,18 +31,18 @@ tfd = tfp.distributions
 
 #tf.config.set_visible_devices([], 'GPU')
 
-args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=200, batch=32, task='regression', num_context=10, uniform_sampling=True, model='LNP')
 #args = argparse.Namespace(epochs=15, batch=128, task='celeb', num_context=10, uniform_sampling=False, model='HNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
-
+TRAINING_ITERATIONS = 100
+TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
 
 model_path = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
-TRAINING_ITERATIONS = int(100) # 1e5
-TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
+
 if args.task == 'mnist':
     train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
     
@@ -55,7 +55,6 @@ if args.task == 'mnist':
 elif args.task == 'regression':
     data_generator = RegressionDataGeneratorArbitraryGPWithVaryingKernel(
         iterations=TRAINING_ITERATIONS,
-        n_iterations_test=TEST_ITERATIONS,
         batch_size=BATCH_SIZE,
         min_num_context=3,
         max_num_context=40,
@@ -131,6 +130,14 @@ def train_step(model, x, optimizer):
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
     return tf.math.reduce_mean(loss)
 
+
+callbacks.append(
+    tf.keras.callbacks.EarlyStopping(
+        patience=25,
+        monitor="val_loss",
+        mode="min",
+        restore_best_weights=True)
+    )
 
 
 #%%
