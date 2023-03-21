@@ -98,7 +98,7 @@ def load_celeb(batch_size: int=32, num_context_points=None, uniform_sampling = T
         target_y = tf.reshape(img, (batch_size, img_size * img_size, 3))
         return (context_x, context_y, target_x), target_y
 
-    train_ds = train_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
+    train_ds = train_ds.batch(batch_size).shuffle(batch_size*5).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
     test_ds = test_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
 
     return train_ds, test_ds, int(train_num/batch_size), int((celeb_a.shape[0] - train_num) / batch_size)

@@ -9,10 +9,10 @@ tf.config.set_visible_devices([], 'GPU')
 import tensorflow_probability as tfp
 
 
-from dataloader.load_mnist import load_mnist, half_load_mnist
+from dataloader.load_mnist import load_mnist, split_load_mnist
 from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import ConditionalNeuralProcess
-from utility import PlotCallback
+from nueral_process_model_conditional import NeuralProcessConditional
+from utils.utility import PlotCallback
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -38,7 +38,7 @@ if args.task == 'mnist':
         return -dist.log_prob(target_y)
 
 
-model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
+model = NeuralProcessConditional(encoder_dims, decoder_dims)
 
 
 #%%
@@ -46,8 +46,7 @@ model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
 num_context = 100
 model.load_weights(f'trained_models/model_mnist_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
 # Split example
-num_context = 50
-it = iter(half_load_mnist(num_context))
+it = iter(split_load_mnist(num_context))
 
 import matplotlib.pyplot as plt
 tf.random.set_seed(13)
@@ -55,21 +54,35 @@ next(it)
 next(it)
 next(it)
 next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-# next(it)
-(context_x, context_y, target_x), target_y= next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+next(it)
+(context_x, context_y, target_x), target_y, L, R = next(it)
 def vis(x):
     n = x.numpy().reshape(28,28)
     plt.imshow(np.stack((n,n,n), axis=2))
     plt.show()
+vis(L)
+vis(R)
 vis(target_y)
 
 

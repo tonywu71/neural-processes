@@ -1,6 +1,5 @@
 #%%
 import os
-os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
 from tqdm import tqdm
@@ -19,7 +18,7 @@ from dataloader.load_celeb import load_celeb
 from neural_process_model_hybrid import NeuralProcessHybrid
 from neural_process_model_latent import NeuralProcessLatent
 #from nueral_process_model_conditional import ConditionalNeuralProcess as NeuralProcess
-from utility import PlotCallback
+from utils.utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
@@ -33,7 +32,7 @@ tfd = tfp.distributions
 # args = parser.parse_args()
 
 tf.config.set_visible_devices([], 'GPU') # DONT use the GPU, not needed
-args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='HNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -97,11 +96,9 @@ elif args.task == 'celeb':
 # Define NP Model
 if args.model == 'LNP':
     model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
-    model_path = ".data/LNP_model_regression_context_10_uniform_sampling_True/cp-0121.ckpt"
 elif args.model == 'HNP':
     model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
-    model_path = ".data/HNP_model_regression_context_10_uniform_sampling_True/cp-0061.ckpt"
-model.load_weights(model_path)
+
 
 
 
@@ -156,19 +153,75 @@ def plot_regression(target_x, target_y, context_x, context_y, pred_y):
     return fig
 
 
-# model_path = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' \
-#                     + "cp-.ckpt"
+#%%
 
 
-            
+import os 
+models = os.listdir('C:Users/baker/Documents/MLMI4/conditional-neural-processes/.data/HNP_model_regression_context_10_uniform_sampling_True/')
+models = set([m[:12] for m in models if '.data' in m])
+models = list(models)
+models.sort()
+models.remove('cp-0061.ckpt')
+
 tf.random.set_seed(3)
 test_iter = iter(test_ds)
 x = next(test_iter)
 
-(context_x, context_y, target_x), target_y = x
-pred_y = model(x[0])
-fig = plot_regression(target_x, target_y, context_x, context_y, pred_y)
-#fig.suptitle(f'loss {logs["loss"]:.5f}')
+mus = []
+sigmas = []
+for name in models:
+    model_path = 'C:Users/baker/Documents/MLMI4/conditional-neural-processes/.data/HNP_model_regression_context_10_uniform_sampling_True/'
+    model.load_weights(model_path + name)
+    (context_x, context_y, target_x), target_y = x
+    context = tf.concat((context_x, context_y), axis=-1)
+    hidden = model.z_encoder_latent.model(context)
+
+    mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
+    sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
+    mus.append(mu.numpy().reshape(-1))
+    sigmas.append(sigma.numpy().reshape(-1))
+
+
 #%%
 
+import plotly.graph_objects as go
+from plotly.colors import n_colors
+import numpy as np
 
+
+
+data = []
+# for i in range(12):
+#     r = np.random.random((1024, 128))
+#     #dist = np.histogram(r, bins=np.linspace(np.min(r), np.max(r), 100))
+#     #dist = (dist[0] / np.sum(dist[0]), dist[1])
+#     data.append(r.reshape(-1))
+
+data = mus
+#data = sigmas
+
+colors = n_colors('rgb(5, 200, 200)', 'rgb(200, 10, 10)', 12, colortype='rgb')
+
+fig = go.Figure()
+i = 0
+for data_line, color in zip(data, colors):
+    
+    #fig.add_trace(go.Violin(x=data_line, line_color=color))
+    fig.add_trace(go.Violin(x=data_line, line_color=color, name=list(models)[i][5:7]))
+    i+=1
+
+fig.update_traces(orientation='h', side='positive', width=3, points=False)
+fig.update_layout(xaxis_showgrid=False, xaxis_zeroline=False)
+fig.update_layout(title='Latent Distribution Mean', xaxis_title="Latent Distribution Mean",
+    yaxis_title="Epoch")
+# fig.update_layout(title='Latent Distribution Standard Deviation', xaxis_title="Latent Distribution Standard Deviation",
+#     yaxis_title="Epoch")
+fig.update_layout(
+    showlegend=False,
+    width=400,
+    height=300,
+    margin=dict(l=20, r=20, t=30, b=20),
+)
+fig.show()
+
+#%%

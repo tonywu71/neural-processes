@@ -11,8 +11,8 @@ import tensorflow_probability as tfp
 
 from dataloader.load_mnist import load_mnist, split_load_mnist
 from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import ConditionalNeuralProcess
-from utility import PlotCallback
+from nueral_process_model_conditional import NeuralProcessConditional
+from utils.utility import PlotCallback
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -69,7 +69,7 @@ elif args.task == 'celeb':
         dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(target_y)
     
-model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
+model = NeuralProcessConditional(encoder_dims, decoder_dims)
 #model.compile(loss=loss, optimizer='adam')
 
 #%%
@@ -83,7 +83,7 @@ for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
 
     #model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
     #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
-    model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
+    model = NeuralProcessConditional(encoder_dims, decoder_dims)
     #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
     
 

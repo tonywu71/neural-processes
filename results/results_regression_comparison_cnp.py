@@ -11,8 +11,8 @@ import tensorflow_probability as tfp
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import ConditionalNeuralProcess
-from utility import PlotCallback
+from nueral_process_model_conditional import NeuralProcessConditional
+from utils.utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
@@ -91,7 +91,7 @@ elif args.task == 'celeb':
 
 
 # Compile model
-model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
+model = NeuralProcessConditional(encoder_dims, decoder_dims)
 
 
 model_path = ".data/CNP2_model_regression_context_10_uniform_sampling_True/cp-0075.ckpt"

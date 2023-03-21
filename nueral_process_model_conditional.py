@@ -1,85 +1,95 @@
+import numpy as np
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 tfk = tf.keras
-tfkl = tf.keras.layers
 
-class Encoder(tfkl.Layer):
-    def __init__(self, output_dims, name='encoder'):
-        super(Encoder, self).__init__(name=name, dynamic=True)
-        self._layers = [tfkl.Dense(units=dim, name=f'fc_{i}') for i, dim in enumerate(output_dims)]
-        self.encoding_dim = output_dims[-1]
+"""https://github.com/revsic/tf-neural-process/blob/master/neural_process/"""
 
-    #@tf.function
-    def call(self, context_x, context_y):
+def dense_sequential(output_sizes, activation=tf.nn.relu):
+    model = tfk.Sequential()
+    for size in output_sizes[:-1]:
+        model.add(tfk.layers.Dense(size, activation=activation))
+    
+    model.add(tfk.layers.Dense(output_sizes[-1]))
+    return model
+
+class Encoder(tfk.layers.Layer):
+    def __init__(self, output_sizes, name='Encoder'):
+        super(Encoder, self).__init__(name=name)
+        self.model = dense_sequential(output_sizes)
+        self.hidden_output_shape = output_sizes[-1]
+
+    @tf.function(reduce_retracing=True)
+    def call(self, rep):
+        batch_size, observation_points, context_dim = (tf.shape(rep)[0], tf.shape(rep)[1], tf.shape(rep)[2])
+        hidden = tf.reshape(rep, shape=(batch_size * observation_points, context_dim))
+
+        hidden = self.model(rep)
+
+        outputs = tf.reshape(hidden, shape=(batch_size, observation_points, self.hidden_output_shape))
+
+        outputs = tf.reduce_mean(outputs, axis=1)
+
+        return outputs
+
+
+class Decoder(tfk.layers.Layer):
+    def __init__(self, output_sizes, name='Decoder'):
+        super(Decoder, self).__init__(name=name)
+        self.model = dense_sequential(output_sizes)
+        self.output_size = output_sizes[-1]
+    
+    @tf.function(reduce_retracing=True)
+    def call(self, context, tx):
+        input_tensor = tf.concat((context, tx), axis=-1)
+
+        batch_size, observation_points, input_dim = (tf.shape(input_tensor)[0], tf.shape(input_tensor)[1], tf.shape(input_tensor)[2])
+        input_tensor = tf.reshape(input_tensor, shape=(batch_size * observation_points, input_dim))
+
+        outputs = self.model(input_tensor)
+
+        outputs = tf.reshape(outputs, shape=(batch_size, observation_points, self.output_size))
+        
+        return outputs
+
+
+
+class NeuralProcessConditional(tfk.Model):
+    def __init__(self,
+                 enc_output_sizes,
+                 dec_output_sizes, name='NeuralProcessConditional'):
+        super(NeuralProcessConditional, self).__init__(name=name)
+
+        self.encoder = Encoder(enc_output_sizes)
+        self.decoder = Decoder(dec_output_sizes)#[:-1])
+
+    
+    @tf.function(reduce_retracing=True)
+    def call(self, x):
         # `context_x` shape (batch_size, observation_points, x_dim)
         # `context_y` shape (batch_size, observation_points, y_dim)
-        # Reshape to parallelize accross all points
-        context = tf.concat([context_x, context_y], axis=-1)
-        batch_size, observation_points, context_dim = [tf.shape(context)[0], tf.shape(context)[1], tf.shape(context)[2]]
+        context_x, context_y, query = x
+        context = tf.concat((context_x, context_y), axis=-1)
+        # `context` shape (batch_size, observation_points, x_dim + y_dim)
 
-        hidden = tf.reshape(context, shape=(batch_size * observation_points, context_dim))
-        # Forward pass through MLP
-        for layer in self._layers[:-1]:
-            hidden = tf.nn.relu(layer(hidden))
-        hidden = self._layers[-1](hidden)  # last layer doesn't have activation
-        # Reshape for each batch
-        outputs = tf.reshape(hidden, shape=(batch_size, observation_points, self.encoding_dim))
-        # Aggregate observation points encodings (here via mean)
-        representations = tf.reduce_mean(outputs, axis=1)
+        context = self.encoder(context)
 
-        return representations
+        target_points = tf.shape(query)[1]
+        context = tf.tile(tf.expand_dims(context, 1),
+                          (1, target_points, 1))
 
-    # def get_config(self):
-    #     return dict([(f"layer{n}", layer) for n, layer in enumerate(self._layers)] + [("encoding_dim", self.encoding_dim), ("layers", len(self._layers))])
+        rep = self.decoder(context, query)
+        mu, log_sigma = tf.split(rep, num_or_size_splits=2, axis=-1) # split the output in half
 
-    # @classmethod
-    # def from_config(cls, config):
-    #     self = cls(config['encoding_dim'])
-    #     for n in range(len(self._layers)):
-    #         self._layers[n] = config["layer{n}"]
-
-class Decoder(tfkl.Layer):
-    def __init__(self, output_dims, name='decoder'):
-        super(Decoder, self).__init__(name=name, dynamic=True)
-        self._layers = [tfkl.Dense(units=dim, name=f'fc_{i}') for i, dim in enumerate(output_dims)]
-
-    #@tf.function
-    def call(self, representations, target_x):
-        # `target_x` shape (batch_size, target_points, x_dim)
-        # `representations` shape (batch_size, repr_dim)
-        # Concatenate each target point with its context
-        target_points = target_x.shape[1]
-        representations = tf.expand_dims(representations, axis=1)  # (batch_size, 1, repr_dim)
-        representations = tf.tile(representations, [1, target_points, 1])  # (batch_size, target_points, repr_dim)
-        inputs = tf.concat([representations, target_x], axis=-1)
-        # Reshape to parallelize accross all points
-        
-        batch_size, observation_points, inputs_dim = [tf.shape(inputs)[0],tf.shape(inputs)[1],tf.shape(inputs)[2]]
-        #batch_size, observation_points, inputs_dim = inputs.get_shape().as_list()
-        
-        hidden = tf.reshape(inputs, shape=(batch_size * observation_points, inputs_dim))
-        # Forward pass through MLP
-        for layer in self._layers[:-1]:
-            hidden = tf.nn.relu(layer(hidden))
-        hidden = self._layers[-1](hidden)  # last layer doesn't have activation
-        # Reshape into original shapes
-        outputs = tf.reshape(hidden, shape=(batch_size, observation_points, -1))
-        # Get predicted mean and variance
-        mu, log_sigma = tf.split(outputs, num_or_size_splits=2, axis=-1)  # (batch_size, target_points, 1)
-        # Bound the variance
         sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
 
-        return mu, sigma
+        return tf.concat((mu, sigma), axis=-1)#(dist, mu, sigma) # tf.concat([mu, sigma], axis=-1) #dist, mu, sigma
 
-class ConditionalNeuralProcess(tfk.Model):
-    def __init__(self, encoder_dims, decoder_dims, name='CNP'):
-        super(ConditionalNeuralProcess, self).__init__(name=name)
-        self.encoder = Encoder(encoder_dims)
-        self.decoder = Decoder(decoder_dims)
 
-    @tf.function
-    def call(self, inputs):
-        context_x, context_y, target_x = inputs
-        representations = self.encoder(context_x, context_y)
-        mu, sigma = self.decoder(representations, target_x)
-        return tf.concat([mu, sigma], axis=-1)
+    @tf.function(reduce_retracing=True)
+    def compute_loss(self, x):
+        pred_y = self(x[0])
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=2)
+        dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+        return -dist.log_prob(x[1])

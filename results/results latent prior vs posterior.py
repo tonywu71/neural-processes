@@ -1,5 +1,6 @@
 #%%
 import os
+os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
 from tqdm import tqdm
@@ -18,7 +19,7 @@ from dataloader.load_celeb import load_celeb
 from neural_process_model_hybrid import NeuralProcessHybrid
 from neural_process_model_latent import NeuralProcessLatent
 #from nueral_process_model_conditional import ConditionalNeuralProcess as NeuralProcess
-from utility import PlotCallback
+from utils.utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
@@ -32,7 +33,8 @@ tfd = tfp.distributions
 # args = parser.parse_args()
 
 tf.config.set_visible_devices([], 'GPU') # DONT use the GPU, not needed
-args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='HNP')
+args = argparse.Namespace(epochs=15, batch=2, task='regression', num_context=10, uniform_sampling=True, model='HNP')
+
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -156,21 +158,26 @@ def plot_regression(target_x, target_y, context_x, context_y, pred_y):
 #%%
 
 
-import os 
-models = os.listdir('C:Users/baker/Documents/MLMI4/conditional-neural-processes/.data/HNP_model_regression_context_10_uniform_sampling_True/')
+import os
+pth = '.data/HNP_model_regression_context_10_uniform_sampling_True/'
+# pth = '.data/LNP_model_regression_context_10_uniform_sampling_True/'
+models = os.listdir(pth)
 models = set([m[:12] for m in models if '.data' in m])
 models = list(models)
 models.sort()
-models.remove('cp-0061.ckpt')
+#models.remove('cp-0061.ckpt')
 
 tf.random.set_seed(3)
 test_iter = iter(test_ds)
 x = next(test_iter)
 
-mus = []
-sigmas = []
+prior_mus = []
+prior_sigmas = []
+
+posterior_mus = []
+posterior_sigmas = []
 for name in models:
-    model_path = 'C:Users/baker/Documents/MLMI4/conditional-neural-processes/.data/HNP_model_regression_context_10_uniform_sampling_True/'
+    model_path = pth
     model.load_weights(model_path + name)
     (context_x, context_y, target_x), target_y = x
     context = tf.concat((context_x, context_y), axis=-1)
@@ -178,8 +185,17 @@ for name in models:
 
     mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
     sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
-    mus.append(mu.numpy().reshape(-1))
-    sigmas.append(sigma.numpy().reshape(-1))
+    prior_mus.append(mu.numpy().reshape(-1))
+    prior_sigmas.append(sigma.numpy().reshape(-1))
+
+    target_context = tf.concat((target_x, target_y), axis=2)
+    hidden = model.z_encoder_latent.model(target_context)
+    mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
+    sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
+    posterior_mus.append(mu.numpy().reshape(-1))
+    posterior_sigmas.append(sigma.numpy().reshape(-1))
+
+    
 
 
 #%%
@@ -197,25 +213,27 @@ data = []
 #     #dist = (dist[0] / np.sum(dist[0]), dist[1])
 #     data.append(r.reshape(-1))
 
-data = mus
-#data = sigmas
+#data = zip(prior_mus, posterior_mus)
+data = zip(prior_sigmas, posterior_sigmas)
 
-colors = n_colors('rgb(5, 200, 200)', 'rgb(200, 10, 10)', 12, colortype='rgb')
+colors = zip(n_colors('rgb(5, 200, 200)', 'rgb(200, 10, 10)', 12, colortype='rgb'), n_colors('rgb(200, 200, 5)', 'rgb(10, 200, 10)', 12, colortype='rgb'))
 
 fig = go.Figure()
 i = 0
 for data_line, color in zip(data, colors):
-    
-    #fig.add_trace(go.Violin(x=data_line, line_color=color))
-    fig.add_trace(go.Violin(x=data_line, line_color=color, name=list(models)[i][5:7]))
+    prior_mu, posterior_mu = data_line
+    col_a, col_b = color
+    y = float(list(models)[i][5:7])
+    fig.add_trace(go.Violin(x=prior_mu, line_color=col_a, name=y))#list(models)[i][5:7]))
+    fig.add_trace(go.Violin(x=posterior_mu, line_color=col_b, name=y+0.1))#list(models)[i][5:7]))
     i+=1
 
 fig.update_traces(orientation='h', side='positive', width=3, points=False)
 fig.update_layout(xaxis_showgrid=False, xaxis_zeroline=False)
-fig.update_layout(title='Latent Distribution Mean', xaxis_title="Latent Distribution Mean",
-    yaxis_title="Epoch")
-# fig.update_layout(title='Latent Distribution Standard Deviation', xaxis_title="Latent Distribution Standard Deviation",
+# fig.update_layout(title='Latent Distribution Mean', xaxis_title="Latent Distribution Mean",
 #     yaxis_title="Epoch")
+fig.update_layout(title='HNP Prior vs Posterior Latent Distribution', xaxis_title="Latent Distribution Standard Deviation",
+    yaxis_title="Epoch")
 fig.update_layout(
     showlegend=False,
     width=400,

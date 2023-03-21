@@ -74,7 +74,7 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
         # pixel coords, pixel values, all image coords, target image
         return (context_x, context_y, target_x), target_y
     
-    train_ds = train_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
+    train_ds = train_ds.batch(batch_size).shuffle(batch_size*5).map(encode).prefetch(tf.data.experimental.AUTOTUNE)
     test_ds = test_ds.batch(batch_size).map(encode).prefetch(tf.data.experimental.AUTOTUNE)  # TODO check if prefetch needed
     
     return train_ds, test_ds, int(60000/batch_size), int(10000/batch_size)

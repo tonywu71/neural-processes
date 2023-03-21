@@ -101,7 +101,7 @@ class PlotCallback(tfk.callbacks.Callback):
     def __init__(self, logdir, ds, task):
         super(PlotCallback, self).__init__()
         self.ds = iter(ds)
-        logdir += '/plots'
+        #logdir += '/plots'
         self.file_writer = tf.summary.create_file_writer(logdir=logdir)
         if task == 'mnist':
             self.plot_fn = plot_image

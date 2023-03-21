@@ -3,67 +3,48 @@ import os
 os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
-from tqdm import tqdm
+
 import tensorflow as tf
 tf.config.set_visible_devices([], 'GPU')
 import tensorflow_probability as tfp
 
-import sys
-sys.path.append('example-cnp/')
 
-from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
-from dataloader.load_mnist import half_load_mnist
+from dataloader.load_mnist import load_mnist, half_load_mnist
 from dataloader.load_celeb import load_celeb
-
-from neural_process_model_hybrid import NeuralProcessHybrid
-from neural_process_model_latent import NeuralProcessLatent
-from utility import PlotCallback
-
+from nueral_process_model_conditional import NeuralProcessConditional
+from utils.utility import PlotCallback
 import matplotlib.pyplot as plt
+import numpy as np
 
 tfk = tf.keras
 tfd = tfp.distributions
 
 
+args = argparse.Namespace(epochs=15, batch=64, task='mnist', num_context=10, uniform_sampling=True)
 
-
-
-args = argparse.Namespace(epochs=60, batch=64, task='mnist', num_context=10, uniform_sampling=True, model='LNP')
-
-
+# Training parameters
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 
 
-model_path = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
+if args.task == 'mnist':
+    encoder_dims = [500, 500, 500, 500]
+    decoder_dims = [500, 500, 500, 2]
 
-TRAINING_ITERATIONS = int(100) # 1e5
-TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
-
-z_output_sizes = [500, 500, 500, 1000]
-enc_output_sizes = [500, 500, 500, 500]
-dec_output_sizes = [500, 500, 500, 2]
-
-
-
+    def loss(target_y, pred_y):
+        # Get the distribution
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
+        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+        return -dist.log_prob(target_y)
 
 
-
-
-
-# Define NP Model
-if args.model == 'LNP':
-    model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
-elif args.model == 'HNP':
-    model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
+model = NeuralProcessConditional(encoder_dims, decoder_dims)
 
 
 #%%
-import numpy as np
 
 num_context = 100
-#model.load_weights(f'trained_models/model_mnist_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
-model.load_weights('.data/LNP_model_mnist_context_100_uniform_sampling_True/cp-0092.ckpt')
+model.load_weights(f'trained_models/model_mnist_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
 # Split example
 num_context = 50
 it = iter(half_load_mnist(num_context))
@@ -80,7 +61,7 @@ next(it)
 # next(it)
 # next(it)
 # next(it)
-# next(it) #
+# next(it)
 # next(it)
 # next(it)
 # next(it)

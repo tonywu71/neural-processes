@@ -17,7 +17,7 @@ from dataloader.load_celeb import load_celeb
 
 from neural_process_model_hybrid import NeuralProcessHybrid
 from neural_process_model_latent import NeuralProcessLatent
-from utility import PlotCallback
+from utils.utility import PlotCallback
 
 import matplotlib.pyplot as plt
 

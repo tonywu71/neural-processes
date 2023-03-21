@@ -10,8 +10,8 @@ import tensorflow_probability as tfp
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import ConditionalNeuralProcess
-from utility import PlotCallback
+from nueral_process_model_conditional import NeuralProcessConditional
+from utils.utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
@@ -47,11 +47,6 @@ if args.task == 'mnist':
     encoder_dims = [500, 500, 500, 500]
     decoder_dims = [500, 500, 500, 2]
 
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
 
 
 elif args.task == 'regression':
@@ -72,11 +67,6 @@ elif args.task == 'regression':
     encoder_dims = [500, 500, 500, 500]
     decoder_dims = [500, 500, 500, 2]
 
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
 
 
 elif args.task == 'celeb':
@@ -87,16 +77,10 @@ elif args.task == 'celeb':
     encoder_dims = [500, 500, 500, 500]
     decoder_dims = [500, 500, 500, 6]
 
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
-
 
 # Compile model
-model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
-model.compile(loss=loss, optimizer='adam')
+model = NeuralProcessConditional(encoder_dims, decoder_dims)
+model.compile(loss=NeuralProcessConditional.loss, optimizer='adam')
 
 
 # Callbacks
