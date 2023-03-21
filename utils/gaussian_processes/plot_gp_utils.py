@@ -5,7 +5,7 @@ import tensorflow as tf
 
 import matplotlib.pyplot as plt
 
-from model import ConditionalNeuralProcess
+from nueral_process_model_conditional import ConditionalNeuralProcess
 
 
 def plot_mean_with_std(x: np.ndarray,

@@ -15,7 +15,7 @@ from dataloader.load_celeb import load_celeb
 
 from neural_process_model_hybrid import NeuralProcessHybrid
 from neural_process_model_latent import NeuralProcessLatent
-#from model import ConditionalNeuralProcess as NeuralProcess
+#from nueral_process_model_conditional import ConditionalNeuralProcess as NeuralProcess
 from utility import PlotCallback
 
 tfk = tf.keras

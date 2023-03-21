@@ -11,7 +11,7 @@ import tensorflow_probability as tfp
 
 from dataloader.load_mnist import load_mnist, split_load_mnist
 from dataloader.load_celeb import load_celeb
-from model import ConditionalNeuralProcess
+from nueral_process_model_conditional import ConditionalNeuralProcess
 from utility import PlotCallback
 import matplotlib.pyplot as plt
 import numpy as np
