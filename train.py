@@ -27,7 +27,7 @@ tfd = tfp.distributions
 # args = parser.parse_args()
 
 #args = argparse.Namespace(epochs=60, batch=1024, task="regression", num_context=100, uniform_sampling=True)
-args = argparse.Namespace(epochs=10, batch=256, task="celeb", num_context=10, uniform_sampling=True)
+args = argparse.Namespace(epochs=10, batch=256, task="mnist", num_context=10, uniform_sampling=True)
 
 # Note that num_context is not used for the 1D regression task.
 #tf.config.set_visible_devices([], 'GPU')
@@ -37,7 +37,7 @@ BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 
 
-model_path = f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
+model_path = f'.data/CNP-5_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 
 if args.task == 'mnist':
@@ -110,7 +110,7 @@ cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=model_path,
                                                  verbose=1)
 callbacks = [tensorboard_clbk, plot_clbk, cp_callback]
 
-
+#%%
 
 # Train
 model.fit(train_ds, epochs=EPOCHS, callbacks=callbacks)

@@ -148,3 +148,35 @@ class NeuralProcessHybrid(tfk.Model):
         mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=2)
         dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
         return -dist.log_prob(x[1])
+    
+    @tf.function(reduce_retracing=True)
+    def compute_loss_var(self, x):
+        (context_x, context_y, query), target_y = x
+        context = tf.concat((context_x, context_y), axis=2)
+        target_context = tf.concat((query, target_y), axis=2)
+
+
+        pred_y = self(x[0])
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=2)
+        dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+
+        log_prob = dist.log_prob(target_y)
+        log_prob = tf.reduce_sum(log_prob)
+
+        prior = self.z_encoder_latent(context)
+        posterior = self.z_encoder_latent(target_context)
+
+        kl = tfp.distributions.kl_divergence(prior, posterior)
+        kl = tf.reduce_sum(kl)
+        
+        additional_loss = 0.0
+        # THRESHOLD = 0.2
+        # std = tf.math.reduce_mean(prior.stddev())
+        # if std < THRESHOLD:
+        #     additional_loss = tf.math.square(THRESHOLD - std)
+
+
+
+        # maximize variational lower bound
+        loss = -log_prob + kl + additional_loss
+        return loss, (-log_prob, kl, additional_loss)

@@ -31,15 +31,15 @@ tfd = tfp.distributions
 
 #tf.config.set_visible_devices([], 'GPU')
 
-#args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
-args = argparse.Namespace(epochs=30, batch=256, task='mnist', num_context=100, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='HNP')
+#args = argparse.Namespace(epochs=30, batch=256, task='mnist', num_context=100, uniform_sampling=True, model='HNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
 LOG_PRIORS = True
 
-model_path = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
+model_path = f'.data/var{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-{epoch:04d}.ckpt"
 
 TRAINING_ITERATIONS = int(100) # 1e5
 TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
@@ -121,10 +121,10 @@ def train_step(model, x, optimizer):
 
 
     with tf.GradientTape() as tape:
-        loss = model.compute_loss(x)
+        loss, loss_terms = model.compute_loss_var(x)
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-    return tf.math.reduce_mean(loss)
+    return tf.math.reduce_mean(loss), loss_terms
 
 
 
@@ -133,7 +133,7 @@ def train_step(model, x, optimizer):
 epochs = args.epochs
 epochs=100
 
-for epoch in range(31, epochs + 1):
+for epoch in range(1, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 
@@ -145,7 +145,7 @@ for epoch in range(31, epochs + 1):
             #     print("profiling!")
             # tf.summary.trace_on(graph=True) # Uncomment to trace the computational graph
 
-            loss = train_step(model, train_x, optimizer)
+            loss, loss_terms = train_step(model, train_x, optimizer)
 
             # if idx == 5:
             #     tf.profiler.experimental.stop(log_dir)
@@ -159,6 +159,11 @@ for epoch in range(31, epochs + 1):
                 # tf.summary.trace_export(
                 #     name=f"NP_trace {idx}",
                 #     step=idx) # Uncomment to trace the computational graph
+
+                tf.summary.scalar('loss_terms/nlog_prob', loss_terms[0], step=epoch*TRAINING_ITERATIONS + idx)
+                tf.summary.scalar('loss_terms/kl', loss_terms[1], step=epoch*TRAINING_ITERATIONS + idx)
+                tf.summary.scalar('loss_terms/var', loss_terms[2], step=epoch*TRAINING_ITERATIONS + idx)
+                
 
             
 
