@@ -2,7 +2,7 @@
 import os
 os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 from utils.load_model import *
-tf.config.set_visible_devices([], 'GPU')
+tf.config.set_visible_devices([], 'GPU') # Disable the GPU if present, we wont need it
 from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import RegressionDataGeneratorArbitraryGPWithVaryingKernel
 from utils.gaussian_processes.gp_model import plot_mean_with_std
 from utils.gaussian_processes.plot_gp_utils import plot_preds_from_ds_test
@@ -14,11 +14,11 @@ from utils.gaussian_processes.plot_gp_utils import plot_preds_from_single_exampl
 
 
 args = argparse.Namespace(epochs=60, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='CNP')
-model, train_ds, test_ds = load_model(args, ".data/CNP_model_regression_varying_context_25_uniform_sampling_True/cp-0080.ckpt")
+model, train_ds, test_ds = load_model_and_dataset(args, ".data/CNP_model_regression_varying_context_25_uniform_sampling_True/cp-0080.ckpt")
 args = argparse.Namespace(epochs=60, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='LNP')
-lnp_model, _, _ = load_model(args, ".data/LNP_model_regression_varying_context_25_uniform_sampling_True/cp-0080.ckpt")
+lnp_model, _, _ = load_model_and_dataset(args, ".data/LNP_model_regression_varying_context_25_uniform_sampling_True/cp-0080.ckpt")
 args = argparse.Namespace(epochs=60, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
-hnpc_model, _, _ = load_model(args, ".data/HNPC_model_regression_varying_context_25_uniform_sampling_True/cp-0045.ckpt")
+hnpc_model, _, _ = load_model_and_dataset(args, ".data/HNPC_model_regression_varying_context_25_uniform_sampling_True/cp-0080.ckpt")
 
 
 # %%

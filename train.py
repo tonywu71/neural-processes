@@ -39,10 +39,10 @@ tfd = tfp.distributions
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=80, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
+#args = argparse.Namespace(epochs=80, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
 
 # MNIST / Celeb
-#args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
+args = argparse.Namespace(epochs=30, batch=256, task='mnist', num_context=100, uniform_sampling=True, model='HNPC')
 
 LOG_PRIORS = True
 

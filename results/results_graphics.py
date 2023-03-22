@@ -2,17 +2,18 @@
 import os
 os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 from utils.load_model import *
-
+tf.config.set_visible_devices([], 'GPU') # Disable the GPU if present, we wont need it
+import matplotlib.pyplot as plt
 
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='HNPC')
-model, train_ds, test_ds = load_model(args)
+args = argparse.Namespace(epochs=60, batch=64, task='mnist', num_context=100, uniform_sampling=True, model='HNPC')
 
-pth = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0080.ckpt"
+pth = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/'# + "cp-0030.ckpt"
+model, train_ds, test_ds = load_model_and_dataset(args, pth)
 
-model.load_weights(pth)
+#model.load_weights(pth)
 
 #%%
 
@@ -64,13 +65,10 @@ for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
         axs[2][i].set_title('Predicted variance')
 
     elif args.task == 'mnist':
-        model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
+        #model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
         train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=args.uniform_sampling)
         img_size=28
         it = iter(test_ds)
-        next(it)
-        next(it)
-        next(it)
         next(it)
         next(it)
         next(it)

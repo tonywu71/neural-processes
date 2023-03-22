@@ -2,13 +2,14 @@
 import os
 os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 from utils.load_model import *
+tf.config.set_visible_devices([], 'GPU') # Disable the GPU if present, we wont need it
 
 
 # ================================ Training parameters ===============================================
 
 # Regression
 args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='HNPC')
-model, train_ds, test_ds = load_model(args)
+model, train_ds, test_ds = load_model_and_dataset(args)
 
 if args.model == 'CNP':
     pass
@@ -20,7 +21,6 @@ elif args.model == 'HNPC':
     pth = '.data/HNPC_model_regression_context_25_uniform_sampling_True/'
 
 
-#%%
 
 models = os.listdir(pth)
 models = set([m[:12] for m in models if '.data' in m])
@@ -56,7 +56,7 @@ for name in models:
     
 
 
-#%%
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -119,14 +119,14 @@ def plot_distributions(dist, name=""):
         #     xanchor="left",
         #     x=0.01
         # ),
-        width=400,
-        height=300,
+        width=500,
+        height=400,
         margin=dict(l=20, r=20, t=30, b=20),
     )
 
     fig.show()
 
-#plot_distributions(prior_mus, "Mean")
+plot_distributions(prior_mus, "Mean")
 plot_distributions(prior_sigmas, "Standard Deviation")
 
 #%%
