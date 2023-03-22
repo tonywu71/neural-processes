@@ -5,7 +5,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_probability as tfp
 
-from model import ConditionalNeuralProcess
+from nueral_process_model_conditional import NeuralProcessConditional
 from utils import PlotCallback, get_gp_curve_generator
 
 tfk = tf.keras
@@ -92,7 +92,7 @@ else: # args.task == regression
 # Compile model
 # strategy = tf.distribute.MirroredStrategy()
 # with strategy.scope():
-model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
+model = NeuralProcessConditional(encoder_dims, decoder_dims)
 model.compile(loss=loss, optimizer='adam')
 
 # Callbacks

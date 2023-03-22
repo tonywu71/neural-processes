@@ -73,16 +73,18 @@ class LatentEncoder(tfk.layers.Layer):
         return dist
 
 
-class NeuralProcessHybrid(tfk.Model):
+class NeuralProcessHybridConstrained(tfk.Model):
     def __init__(self,
                  z_output_sizes,
                  enc_output_sizes,
                  dec_output_sizes, name='NeuralProcessHybrid'):
-        super(NeuralProcessHybrid, self).__init__(name=name)
+        super(NeuralProcessHybridConstrained, self).__init__(name=name)
 
         self.z_encoder_latent = LatentEncoder(z_output_sizes)
         self.encoder = Encoder(enc_output_sizes)
-        self.decoder = Decoder(dec_output_sizes)
+        self.decoder = Decoder(dec_output_sizes)#[:-1])
+
+        self.idx = 0
     
     @tf.function(reduce_retracing=True)
     def call(self, x):
@@ -109,6 +111,8 @@ class NeuralProcessHybrid(tfk.Model):
 
         return tf.concat((mu, sigma), axis=-1)
 
+
+    
     @tf.function(reduce_retracing=True)
     def compute_loss(self, x):
         (context_x, context_y, query), target_y = x
@@ -128,8 +132,30 @@ class NeuralProcessHybrid(tfk.Model):
 
         kl = tfp.distributions.kl_divergence(prior, posterior)
         kl = tf.reduce_sum(kl)
+        
+        additional_loss = 0.0
+        THRESHOLD = 0.063
+        dist_mean = tf.math.reduce_mean(prior.stddev())
+        dist_std = tf.math.reduce_std(prior.stddev())
+        if dist_std < THRESHOLD:
+            additional_loss += tf.math.square(THRESHOLD - dist_std) * 1e5
+        
+        MEAN_THRESHOLD = 0.3
+        mean_dist_mean = tf.math.reduce_mean(prior.mean())
+        mean_dist_std = tf.math.reduce_std(prior.mean())
+        if mean_dist_std < MEAN_THRESHOLD:
+            additional_loss += tf.math.square(MEAN_THRESHOLD - mean_dist_std) * 1e5
+
+        with self.writer.as_default():
+            tf.summary.scalar('loss_terms/nlog_prob', -log_prob, step=self.idx)
+            tf.summary.scalar('loss_terms/kl', kl, step=self.idx)
+            tf.summary.scalar('loss_terms/dist_mean', dist_mean, step=self.idx)
+            tf.summary.scalar('loss_terms/dist_std', dist_std, step=self.idx)
+            tf.summary.scalar('loss_terms/mean_dist_mean', mean_dist_mean, step=self.idx)
+            tf.summary.scalar('loss_terms/mean_dist_std', mean_dist_std, step=self.idx)
+            tf.summary.scalar('loss_terms/additional_loss', additional_loss, step=self.idx)
+        self.idx += 1
+        
 
         # maximize variational lower bound
-        loss = -log_prob + kl
-        return loss
-
+        return -log_prob + kl + additional_loss

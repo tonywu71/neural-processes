@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 tfk = tf.keras
 tfkl = tf.keras.layers
@@ -9,11 +10,11 @@ class Encoder(tfkl.Layer):
         self._layers = [tfkl.Dense(units=dim, name=f'fc_{i}') for i, dim in enumerate(output_dims)]
         self.encoding_dim = output_dims[-1]
 
-    #@tf.function
+
     def call(self, context_x, context_y):
         # `context_x` shape (batch_size, observation_points, x_dim)
         # `context_y` shape (batch_size, observation_points, y_dim)
-        # Reshape to parallelize accross all points
+        # Reshape to parallelize across all points
         context = tf.concat([context_x, context_y], axis=-1)
         batch_size, observation_points, context_dim = [tf.shape(context)[0], tf.shape(context)[1], tf.shape(context)[2]]
 
@@ -29,21 +30,13 @@ class Encoder(tfkl.Layer):
 
         return representations
 
-    # def get_config(self):
-    #     return dict([(f"layer{n}", layer) for n, layer in enumerate(self._layers)] + [("encoding_dim", self.encoding_dim), ("layers", len(self._layers))])
-
-    # @classmethod
-    # def from_config(cls, config):
-    #     self = cls(config['encoding_dim'])
-    #     for n in range(len(self._layers)):
-    #         self._layers[n] = config["layer{n}"]
 
 class Decoder(tfkl.Layer):
     def __init__(self, output_dims, name='decoder'):
         super(Decoder, self).__init__(name=name, dynamic=True)
         self._layers = [tfkl.Dense(units=dim, name=f'fc_{i}') for i, dim in enumerate(output_dims)]
 
-    #@tf.function
+
     def call(self, representations, target_x):
         # `target_x` shape (batch_size, target_points, x_dim)
         # `representations` shape (batch_size, repr_dim)
@@ -71,9 +64,9 @@ class Decoder(tfkl.Layer):
 
         return mu, sigma
 
-class ConditionalNeuralProcess(tfk.Model):
+class NeuralProcessConditional(tfk.Model):
     def __init__(self, encoder_dims, decoder_dims, name='CNP'):
-        super(ConditionalNeuralProcess, self).__init__(name=name)
+        super(NeuralProcessConditional, self).__init__(name=name)
         self.encoder = Encoder(encoder_dims)
         self.decoder = Decoder(decoder_dims)
 
@@ -83,3 +76,10 @@ class ConditionalNeuralProcess(tfk.Model):
         representations = self.encoder(context_x, context_y)
         mu, sigma = self.decoder(representations, target_x)
         return tf.concat([mu, sigma], axis=-1)
+
+    @tf.function(reduce_retracing=True)
+    def compute_loss(self, x):
+        pred_y = self(x[0])
+        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=2)
+        dist = tfp.distributions.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
+        return -dist.log_prob(x[1])

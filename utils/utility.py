@@ -100,8 +100,6 @@ def plot_image_celeb(target_x, target_y, context_x, context_y, pred_y, img_size=
 class PlotCallback(tfk.callbacks.Callback):
     def __init__(self, logdir, ds, task):
         super(PlotCallback, self).__init__()
-        self.ds = iter(ds)
-        logdir += '/plots'
         self.file_writer = tf.summary.create_file_writer(logdir=logdir)
         if task == 'mnist':
             self.plot_fn = plot_image
@@ -109,24 +107,33 @@ class PlotCallback(tfk.callbacks.Callback):
             self.plot_fn = plot_image_celeb
         else:
             self.plot_fn = plot_regression
+
         self.test_ds = ds
         self.test_it = iter(self.test_ds)
+        self.task = task
 
 
     def get_next_data(self):
-        try:
-            next_data = next(self.test_it)
-        except StopIteration:
-            self.test_it = iter(self.test_ds)
-            next_data = next(self.test_it)
-        return next_data
+        for i in range(100):
+            try:
+                next_data = next(self.test_it)
+                return next_data
+            except: # StopIteration:
+                self.test_it = iter(self.test_ds)
+                next_data = next(self.test_it)
+                return next_data
 
 
     def on_epoch_end(self, epoch, logs=None):
-        (context_x, context_y, target_x), target_y = self.get_next_data()
-        pred_y = self.model((context_x, context_y, target_x))
-        fig = self.plot_fn(target_x, target_y, context_x, context_y, pred_y)
-        fig.suptitle(f'loss {logs["loss"]:.5f}')
-        img = plot_to_image(fig)
-        with self.file_writer.as_default():
-            tf.summary.image(name="CNP image completion", data=img, step=epoch)
+        try:
+            (context_x, context_y, target_x), target_y = self.get_next_data()
+            pred_y = self.model((context_x, context_y, target_x))
+            fig = self.plot_fn(target_x, target_y, context_x, context_y, pred_y)
+            fig.suptitle(f'loss {logs["loss"]:.5f}')
+            img = plot_to_image(fig)
+            with self.file_writer.as_default():
+                tf.summary.image(name=f"{self.model.name} {self.task} Test Sample", data=img, step=epoch)
+        except:
+            print("Failed plot callback")
+
+

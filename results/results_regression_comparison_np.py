@@ -3,20 +3,26 @@ import os
 os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
-import matplotlib.pyplot as plt
-import numpy as np
+from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
+import matplotlib.pyplot as plt
+import numpy as np
+
+import sys
+sys.path.append('example-cnp/')
 
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
-from model import ConditionalNeuralProcess
-from utility import PlotCallback
+
+from neural_process_model_hybrid import NeuralProcessHybrid
+from neural_process_model_latent import NeuralProcessLatent
+#from nueral_process_model_conditional import ConditionalNeuralProcess as NeuralProcess
+from utils.utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
-
 
 # # Parse arguments
 # parser = argparse.ArgumentParser()
@@ -26,9 +32,8 @@ tfd = tfp.distributions
 
 # args = parser.parse_args()
 
-args = argparse.Namespace(epochs=120, batch=1024, task="regression", num_context=10, uniform_sampling=True)
-# Note that num_context is not used for the 1D regression task.
 tf.config.set_visible_devices([], 'GPU') # DONT use the GPU, not needed
+args = argparse.Namespace(epochs=15, batch=1024, task='regression', num_context=10, uniform_sampling=True, model='LNP')
 
 # Training parameters
 BATCH_SIZE = args.batch
@@ -36,23 +41,21 @@ EPOCHS = args.epochs
 
 
 
+TRAINING_ITERATIONS = int(100) # 1e5
+TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
 if args.task == 'mnist':
-    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS  = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
     
     # Model architecture
-    encoder_dims = [500, 500, 500, 500]
-    decoder_dims = [500, 500, 500, 2]
-
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
+    z_output_sizes = [500, 500, 500, 500]
+    enc_output_sizes = [500, 500, 500, 1000]
+    dec_output_sizes = [500, 500, 500, 2]
 
 
 elif args.task == 'regression':
     data_generator = RegressionDataGeneratorArbitraryGP(
-        iterations=25,
+        iterations=TRAINING_ITERATIONS,
+        n_iterations_test=TEST_ITERATIONS,
         batch_size=BATCH_SIZE,
         min_num_context=3,
         max_num_context=40,
@@ -60,45 +63,49 @@ elif args.task == 'regression':
         max_num_target=40,
         min_x_val_uniform=-2,
         max_x_val_uniform=2,
-        kernel_length_scale=0.4
+        kernel_length_scale=0.4,
+        
     )
     train_ds, test_ds = data_generator.load_regression_data()
 
     # Model architecture
-    encoder_dims = [500, 500, 500, 500]
-    decoder_dims = [500, 500, 500, 2]
+    z_output_sizes = [500, 500, 500, 500]
+    enc_output_sizes = [500, 500, 500, 1000]
+    dec_output_sizes = [500, 500, 500, 2]
 
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
-
+    
 
 elif args.task == 'celeb':
     train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
                                    uniform_sampling=args.uniform_sampling)
 
     # Model architecture
-    encoder_dims = [500, 500, 500, 500]
-    decoder_dims = [500, 500, 500, 6]
-
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
+    z_output_sizes = [500, 500, 500, 500]
+    enc_output_sizes = [500, 500, 500, 1000]
+    dec_output_sizes = [500, 500, 500, 6]
 
 
-# Compile model
-model = ConditionalNeuralProcess(encoder_dims, decoder_dims)
 
 
-model_path = ".data/CNP2_model_regression_context_10_uniform_sampling_True/cp-0075.ckpt"
-model.load_weights(model_path)
+
+
+
+
 
 #%%
 
+# Define NP Model
+if args.model == 'LNP':
+    model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    model_path = ".data/LNP_model_regression_context_10_uniform_sampling_True/cp-0121.ckpt"
+elif args.model == 'HNP':
+    model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    model_path = ".data/HNP_model_regression_context_10_uniform_sampling_True/cp-0061.ckpt"
+model.load_weights(model_path)
+
+
+
+#%%
 def plot_mean_with_std(x: np.ndarray,
                        mean: np.ndarray,
                        std: np.ndarray,
@@ -162,5 +169,6 @@ x = next(test_iter)
 pred_y = model(x[0])
 fig = plot_regression(target_x, target_y, context_x, context_y, pred_y)
 #fig.suptitle(f'loss {logs["loss"]:.5f}')
-
 #%%
+
+

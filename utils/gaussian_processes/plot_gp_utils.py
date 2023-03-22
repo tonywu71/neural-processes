@@ -5,7 +5,7 @@ import tensorflow as tf
 
 import matplotlib.pyplot as plt
 
-from model import ConditionalNeuralProcess
+from nueral_process_model_conditional import NeuralProcessConditional
 
 
 def plot_mean_with_std(x: np.ndarray,
@@ -39,7 +39,7 @@ def plot_mean_with_std(x: np.ndarray,
     return ax  # type: ignore
 
 
-def plot_preds_from_ds_test(model: ConditionalNeuralProcess,
+def plot_preds_from_ds_test(model: NeuralProcessConditional,
                             ds_test: tf.data.Dataset,
                             num_samples: int=1,
                             show_context_points: bool=True):
@@ -79,7 +79,7 @@ def plot_preds_from_ds_test(model: ConditionalNeuralProcess,
     return fig
 
 
-def plot_preds_from_single_example(model: ConditionalNeuralProcess,
+def plot_preds_from_single_example(model: NeuralProcessConditional,
                                    context_x: tf.Tensor,
                                    context_y: tf.Tensor,
                                    target_x: tf.Tensor,

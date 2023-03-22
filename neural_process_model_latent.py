@@ -1,10 +1,10 @@
-import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+import numpy as np
 
 tfk = tf.keras
 
-"""https://github.com/revsic/tf-neural-process/blob/master/neural_process/"""
+
 
 def dense_sequential(output_sizes, activation=tf.nn.relu):
     model = tfk.Sequential()
@@ -77,15 +77,12 @@ class NeuralProcessLatent(tfk.Model):
     def __init__(self,
                  z_output_sizes,
                  enc_output_sizes,
-                 dec_output_sizes, name='NeuralProcess'):
+                 dec_output_sizes, name='NeuralProcessLatent'):
         super(NeuralProcessLatent, self).__init__(name=name)
 
         self.z_encoder_latent = LatentEncoder(z_output_sizes)
         self.decoder = Decoder(dec_output_sizes)#[:-1])
 
-        # size = dec_output_sizes[-1]
-        # self.dense_mu = tfk.layers.Dense(size)
-        # self.dense_sigma = tfk.layers.Dense(size)
     
     @tf.function(reduce_retracing=True)
     def call(self, x):
@@ -104,11 +101,7 @@ class NeuralProcessLatent(tfk.Model):
 
         rep = self.decoder(context, query)
         mu, log_sigma = tf.split(rep, num_or_size_splits=2, axis=-1) # split the output in half
-        # mu = self.dense_mu(rep)
-        # log_sigma = self.dense_sigma(rep)
-        
-        #sigma = tf.exp(log_sigma)
-        # sigma = log_sigma
+
         sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
 
         return tf.concat((mu, sigma), axis=-1)#(dist, mu, sigma) # tf.concat([mu, sigma], axis=-1) #dist, mu, sigma
