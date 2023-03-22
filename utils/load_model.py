@@ -50,7 +50,7 @@ args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=
 
 
 
-def load_model(args, model_path=None):
+def load_model_and_dataset(args, model_path=None):
     # =========================== Data Loaders ===========================================================================================
     BATCH_SIZE = args.batch
     EPOCHS = args.epochs
@@ -131,6 +131,13 @@ def load_model(args, model_path=None):
         model = NeuralProcessHybridConstrained(z_output_sizes, enc_output_sizes, dec_output_sizes)
 
     if model_path is not None:
-        model.load_weights(model_path)
+        if model_path.endswith(".ckpt"):
+            model.load_weights(model_path)
+        else:
+            models = os.listdir(model_path)
+            models = set([m[:12] for m in models if '.data' in m])
+            models = list(models)
+            models.sort()
+            model.load_weights(model_path + models[-1])
     
     return model, train_ds, test_ds
