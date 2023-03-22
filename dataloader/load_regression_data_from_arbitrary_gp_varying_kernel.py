@@ -131,39 +131,3 @@ class RegressionDataGeneratorArbitraryGPWithVaryingKernel(RegressionDataGenerato
                        min_x_val_uniform=self.min_x_val_uniform,
                        max_x_val_uniform=self.max_x_val_uniform,
                        testing=testing)
-
-
-def draw_single_example_from_arbitrary_gp_varying_kernel(
-        kernel_length_scale: float,
-        num_context: int,
-        num_target: int,
-        min_x_val_uniform: float=-2,
-        max_x_val_uniform: float=2) -> Tuple[Tuple[tf.Tensor, tf.Tensor, tf.Tensor], tf.Tensor]:
-    """Draw a single example from an arbitrary Gaussian Process with a null mean function and
-    a ExponentiatedQuadratic kernel. The number of context and target points is deterministic.
-    
-    Note that the output is not batched.
-    """    
-    kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
-    
-    num_total_points = num_context + num_target
-    
-    x_values = tf.random.uniform(shape=(num_total_points, 1),
-                                 minval=min_x_val_uniform,  # type: ignore
-                                 maxval=max_x_val_uniform)
-    
-    gp = tfd.GaussianProcess(kernel, index_points=x_values, jitter=1.0e-4)
-    y_values = tf.expand_dims(gp.sample(), axis=-1)
-    
-    idx = tf.random.shuffle(tf.range(num_total_points))
-    
-    # Select the targets which will consist of the context points
-    # as well as some new target points
-    target_x = x_values[:, :]
-    target_y = y_values[:, :]
-
-    # Select the observations
-    context_x = tf.gather(x_values, indices=idx[:num_context], axis=0)
-    context_y = tf.gather(y_values, indices=idx[:num_context], axis=0)
-    
-    return (context_x, context_y, target_x), target_y

@@ -5,7 +5,7 @@ import pandas as pd
 
 import tensorflow as tf
 
-from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import draw_single_example_from_arbitrary_gp_varying_kernel
+from dataloader.load_regression_data_from_arbitrary_gp import draw_single_example_from_arbitrary_gp
 
 tfk = tf.keras
 
@@ -43,26 +43,6 @@ def plot_from_arbitrary_gp_wrt_context_points(model: tfk.Model,
 
     for idx_plot, num_context in enumerate(list_num_context):
         (context_x, context_y, target_x), target_y = draw_single_example_from_arbitrary_gp(
-            kernel_length_scale=kernel_length_scale,
-            num_context=num_context,
-            num_target=50
-        )
-        
-        plot_preds_from_single_example(model, context_x, context_y, target_x, target_y, ax=axis[idx_plot])
-
-    return
-
-
-def plot_from_arbitrary_gp_varying_kernel_wrt_context_points(model: tfk.Model,
-                                                             kernel_length_scale: float,
-                                                             list_num_context: List[int]) -> None:
-    fig, axis = plt.subplots(len(list_num_context), 1,
-                            figsize=(8, 3*len(list_num_context)),
-                            sharex=True,
-                            sharey=True)
-
-    for idx_plot, num_context in enumerate(list_num_context):
-        (context_x, context_y, target_x), target_y = draw_single_example_from_arbitrary_gp_varying_kernel(
             kernel_length_scale=kernel_length_scale,
             num_context=num_context,
             num_target=50
@@ -149,32 +129,35 @@ def plot_gp_vs_cnp_vs_lnp(cnp_model: NeuralProcessConditional,
     return
 
 
-def plot_gp_vs_cnp_vs_lnp_varying_kernel(model: NeuralProcessConditional,
+def plot_gp_vs_cnp_vs_lnp_varying_kernel(cnp_model: NeuralProcessConditional,
                                          lnp_model: NeuralProcessLatent,
-                                         kernel_length_scale: float,
-                                         list_num_context: List[int]):
+                                         list_num_context: List[int],
+                                         list_kernel_length_scale: Optional[List[float]]=None):
     fig, axis = plt.subplots(3, len(list_num_context),
                             figsize=(3.5*len(list_num_context), 6),
                             sharex=True,
                             sharey=True)
 
+    if list_kernel_length_scale:
+        assert len(list_num_context) == len(list_kernel_length_scale), "list_num_context and list_kernel_length_scale must have the same length"
+    else:
+        list_kernel_length_scale = []
+        for _ in range(len(list_num_context)):
+            kernel_length_scale = np.random.uniform(0.2, 0.8)
+            list_kernel_length_scale.append(kernel_length_scale)
+    
 
-    list_kernel_length_scale = []
-
-    for idx_plot, num_context in enumerate(list_num_context):
-        kernel_length_scale = np.random.uniform(0.2, 0.8)
-        list_kernel_length_scale.append(kernel_length_scale)
+    for idx_plot, (num_context, kernel_length_scale) in enumerate(zip(list_num_context, list_kernel_length_scale)):
         kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
         
-        
-        (context_x, context_y, target_x), target_y = draw_single_example_from_arbitrary_gp_varying_kernel(
+        (context_x, context_y, target_x), target_y = draw_single_example_from_arbitrary_gp(
             kernel_length_scale=kernel_length_scale,
             num_context=num_context,
             num_target=100
         )
         
         # --- CNP ---
-        plot_preds_from_single_example(model, context_x, context_y, target_x, target_y,
+        plot_preds_from_single_example(cnp_model, context_x, context_y, target_x, target_y,
                                     show_title=False, ax=axis[1, idx_plot])  # type: ignore
         
         
@@ -225,7 +208,6 @@ def plot_gp_vs_cnp_vs_lnp_varying_kernel(model: NeuralProcessConditional,
     axis[0, 0].set_ylabel("GP", size=20)  # type: ignore
     axis[1, 0].set_ylabel("CNP", size=20)  # type: ignore
     axis[2, 0].set_ylabel("LNP", size=20)  # type: ignore
-
         
     fig.tight_layout()
     
