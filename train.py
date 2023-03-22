@@ -14,6 +14,7 @@ from dataloader.load_celeb import load_celeb
 from nueral_process_model_conditional import NeuralProcessConditional
 from neural_process_model_hybrid import NeuralProcessHybrid
 from neural_process_model_latent import NeuralProcessLatent
+from neural_process_model_hybrid_constrained import NeuralProcessHybridConstrained
 from utils.utility import PlotCallback
 
 tfk = tf.keras
@@ -37,7 +38,7 @@ tfd = tfp.distributions
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='HNPC')
 
 # MNIST / Celeb
 #args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
@@ -107,6 +108,9 @@ elif args.model == 'HNP':
     model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
 elif args.model == 'LNP':
     model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
+elif args.model == 'HNPC':
+    model = NeuralProcessHybridConstrained(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    
 
 optimizer = tf.keras.optimizers.Adam(1e-3)
 
@@ -120,6 +124,9 @@ cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=model_path,
                                                  save_weights_only=True)
 callbacks = [plot_clbk, cp_callback]
 for callback in callbacks: callback.model = model
+
+if args.model == 'HNPC':
+    model.writer = writer
 
 # -----------------------------------------------------------------------------------------------------------
 
@@ -138,13 +145,13 @@ def train_step(model, x, optimizer):
     return tf.math.reduce_mean(loss)
 
 
+#%%
 
-
-#%% ============================ Training Loop ===========================================================
+# ============================ Training Loop ===========================================================
 epochs = args.epochs
-epochs=100
+epochs=120
 
-for epoch in range(1, epochs + 1):
+for epoch in range(81, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 
@@ -152,16 +159,9 @@ for epoch in range(1, epochs + 1):
         train_loss = tf.keras.metrics.Mean()
         for idx, train_x in enumerate(train_ds):
 
-            # if idx == 5:
-            #     tf.profiler.experimental.start(log_dir)
-            #     print("profiling!")
-            # tf.summary.trace_on(graph=True) # Uncomment to trace the computational graph
-
             loss = train_step(model, train_x, optimizer)
 
-            # if idx == 5:
-            #     tf.profiler.experimental.stop(log_dir)
-            #     print("profiling end!")
+
 
             # VVVVVVVVVVVVVVVVVVV Logging VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
             train_loss(loss)
@@ -169,9 +169,7 @@ for epoch in range(1, epochs + 1):
             tepoch.update(1)
             with writer.as_default():
                 tf.summary.scalar('train_loss', train_loss.result(), step=epoch*TRAINING_ITERATIONS + idx)
-                # tf.summary.trace_export(
-                #     name=f"NP_trace {idx}",
-                #     step=idx) # Uncomment to trace the computational graph
+
 
             
 
@@ -179,7 +177,9 @@ for epoch in range(1, epochs + 1):
         # ------------------------------ Testing -----------------------------------------------
         test_loss = tf.keras.metrics.Mean()
         for idx, test_x in enumerate(test_ds):
+
             loss = model.compute_loss(test_x)
+            
 
             # VVVVVVVVVVVVVVVVVVV Logging VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
             test_loss(loss)
@@ -194,23 +194,18 @@ for epoch in range(1, epochs + 1):
         # ---------------------- Logging Prior & Posterior Distribution -----------------------------------
         if LOG_PRIORS and args.model != 'CNP':
             (context_x, context_y, target_x), target_y = next(iter(test_ds))
-            context = tf.concat((context_x, context_y), axis=-1)
-            hidden = model.z_encoder_latent.model(context)
-            mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
-            sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
-
-            with writer.as_default():
-                tf.summary.histogram('prior/mu', mu, epoch)
-                tf.summary.histogram('prior/sigma', sigma, epoch)
+            
+            prior_context = tf.concat((context_x, context_y), axis=2)
+            prior = model.z_encoder_latent(prior_context)
 
             target_context = tf.concat((target_x, target_y), axis=2)
-            hidden = model.z_encoder_latent.model(target_context)
-            mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
-            sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
+            posterior = model.z_encoder_latent(target_context)
 
             with writer.as_default():
-                tf.summary.histogram('posterior/mu', mu, epoch)
-                tf.summary.histogram('posterior/sigma', sigma, epoch)
+                tf.summary.histogram('prior/mu', prior.mean(), epoch)
+                tf.summary.histogram('prior/sigma', prior.stddev(), epoch)
+                tf.summary.histogram('posterior/mu', posterior.mean(), epoch)
+                tf.summary.histogram('posterior/sigma', posterior.stddev(), epoch)
 
 
 

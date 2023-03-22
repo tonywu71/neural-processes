@@ -1,55 +1,70 @@
 #%%
 import os
 os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
+import os
 import argparse
 from datetime import datetime
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
-import matplotlib.pyplot as plt
-import numpy as np
-
+#tf.config.set_visible_devices([], 'GPU')
 import sys
 sys.path.append('example-cnp/')
-
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
-
+from nueral_process_model_conditional import NeuralProcessConditional
 from neural_process_model_hybrid import NeuralProcessHybrid
 from neural_process_model_latent import NeuralProcessLatent
-#from nueral_process_model_conditional import ConditionalNeuralProcess as NeuralProcess
+from neural_process_model_hybrid_constrained import NeuralProcessHybridConstrained
 from utils.utility import PlotCallback
 
 tfk = tf.keras
 tfd = tfp.distributions
 
-# # Parse arguments
+# Parse arguments
 # parser = argparse.ArgumentParser()
-# parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
-# parser.add_argument('-b', '--batch', type=int, default=64, help='Batch size for training')
-# parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression)')
-
+# parser.add_argument('-e', '--epochs', type=int, default=120, help='Number of training epochs')
+# parser.add_argument('-b', '--batch', type=int, default=1024, help='Batch size for training')
+# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression)')
+# parser.add_argument('-c', '--num_context', type=int, default=100)
+# parser.add_argument('-u', '--uniform_sampling', type=bool, default=True)
 # args = parser.parse_args()
 
-tf.config.set_visible_devices([], 'GPU') # DONT use the GPU, not needed
-args = argparse.Namespace(epochs=15, batch=2, task='regression', num_context=10, uniform_sampling=True, model='HNP')
 
 
-# Training parameters
+
+
+
+
+# ================================ Training parameters ===============================================
+
+# Regression
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
+
+# MNIST / Celeb
+#args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
+
+LOG_PRIORS = True
+
+# -------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+# =========================== Data Loaders ===========================================================================================
 BATCH_SIZE = args.batch
 EPOCHS = args.epochs
-
-
-
-TRAINING_ITERATIONS = int(100) # 1e5
+TRAINING_ITERATIONS = int(100)
 TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
 if args.task == 'mnist':
     train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
-    
+
     # Model architecture
-    z_output_sizes = [500, 500, 500, 500]
-    enc_output_sizes = [500, 500, 500, 1000]
+    z_output_sizes = [500, 500, 500, 1000]
+    enc_output_sizes = [500, 500, 500, 500]
     dec_output_sizes = [500, 500, 500, 2]
 
 
@@ -64,103 +79,47 @@ elif args.task == 'regression':
         max_num_target=40,
         min_x_val_uniform=-2,
         max_x_val_uniform=2,
-        kernel_length_scale=0.4,
-        
+        kernel_length_scale=0.4
     )
     train_ds, test_ds = data_generator.load_regression_data()
 
     # Model architecture
-    z_output_sizes = [500, 500, 500, 500]
-    enc_output_sizes = [500, 500, 500, 1000]
-    dec_output_sizes = [500, 500, 500, 2]
+    z_output_sizes = [500, 500, 500, 1000]
+    enc_output_sizes = [500, 500, 500, 500]
+    dec_output_sizes = [500, 500, 500, 2]    
 
-    
 
 elif args.task == 'celeb':
-    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context,
-                                   uniform_sampling=args.uniform_sampling)
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
 
     # Model architecture
-    z_output_sizes = [500, 500, 500, 500]
-    enc_output_sizes = [500, 500, 500, 1000]
+    z_output_sizes = [500, 500, 500, 1000]
+    enc_output_sizes = [500, 500, 500, 500]
     dec_output_sizes = [500, 500, 500, 6]
 
+# --------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
 
 
-
-
-
-#%%
-
-# Define NP Model
-if args.model == 'LNP':
-    model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
+# ========================================== Define NP Model ===================================================
+if args.model == 'CNP':
+    model = NeuralProcessConditional(enc_output_sizes, dec_output_sizes)
 elif args.model == 'HNP':
     model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
-
-
-
-
-#%%
-def plot_mean_with_std(x: np.ndarray,
-                       mean: np.ndarray,
-                       std: np.ndarray,
-                       y_true=None,
-                       ax=None,
-                       alpha: float=0.3) -> plt.Axes:
-    """Plot mean and standard deviation.
-    IMPORTANT: x should be sorted and mean and std should be sorted in the same order as x."""
-    
-    if ax is None:
-        ax = plt.gca()
-    
-    # Plot mean:
-    ax.plot(x, mean, label="Mean prediction")  # type: ignore
-    
-    # Plot target if given:
-    if y_true is not None:
-        ax.plot(x, y_true, label="True function")
-    
-    # Plot standard deviation:
-    ax.fill_between(x,  # type: ignore
-                    mean - std,  # type: ignore
-                    mean + std,  # type: ignore
-                    alpha=alpha,
-                    label="Standard deviation")
-    
-    ax.legend()
-    
-    return ax  # type: ignore
-def plot_regression(target_x, target_y, context_x, context_y, pred_y):
-    fig, ax = plt.subplots(figsize=(8, 5))
-    
-    
-    x_val = tf.squeeze(target_x[0, :, :])
-    pred_y = tf.squeeze(pred_y[0, :, :])
-    y_true = tf.squeeze(target_y[0, :, :])
-    
-    idx_x_sorted = tf.argsort(x_val)
-    
-    x_val = tf.gather(x_val, idx_x_sorted)
-    mean = tf.gather(pred_y[:, 0], idx_x_sorted)
-    std = tf.gather(pred_y[:, 1], idx_x_sorted)
-    y_true = tf.gather(y_true, idx_x_sorted)
-    
-    plot_mean_with_std(x=x_val, mean=mean, std=std, y_true=y_true, ax=ax)
-    ax.scatter(context_x[0, :, :], context_y[0, :, :])  # type: ignore
-    
-    return fig
-
+    pth = '.data/HNP_model_regression_context_25_uniform_sampling_True/'
+elif args.model == 'LNP':
+    model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    pth = '.data/LNP_model_regression_context_25_uniform_sampling_True/'
+elif args.model == 'HNPC':
+    model = NeuralProcessHybridConstrained(z_output_sizes, enc_output_sizes, dec_output_sizes)
 
 #%%
 
 
-import os
-pth = '.data/HNP_model_regression_context_10_uniform_sampling_True/'
-# pth = '.data/LNP_model_regression_context_10_uniform_sampling_True/'
+
+
 models = os.listdir(pth)
 models = set([m[:12] for m in models if '.data' in m])
 models = list(models)
@@ -180,23 +139,87 @@ for name in models:
     model_path = pth
     model.load_weights(model_path + name)
     (context_x, context_y, target_x), target_y = x
-    context = tf.concat((context_x, context_y), axis=-1)
-    hidden = model.z_encoder_latent.model(context)
-
-    mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
-    sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
-    prior_mus.append(mu.numpy().reshape(-1))
-    prior_sigmas.append(sigma.numpy().reshape(-1))
+            
+    prior_context = tf.concat((context_x, context_y), axis=2)
+    prior = model.z_encoder_latent(prior_context)
 
     target_context = tf.concat((target_x, target_y), axis=2)
-    hidden = model.z_encoder_latent.model(target_context)
-    mu, log_sigma = tf.split(hidden, num_or_size_splits=2, axis=-1) # split the output in half
-    sigma = 0.1 + 0.9 * tf.nn.softplus(log_sigma)
-    posterior_mus.append(mu.numpy().reshape(-1))
-    posterior_sigmas.append(sigma.numpy().reshape(-1))
+    posterior = model.z_encoder_latent(target_context)
+
+    prior_mus.append(prior.mean().numpy().reshape(-1))
+    prior_sigmas.append(prior.stddev().numpy().reshape(-1))
+    posterior_mus.append(posterior.mean().numpy().reshape(-1))
+    posterior_sigmas.append(posterior.stddev().numpy().reshape(-1))
 
     
 
+
+#%%
+import numpy as np
+import plotly.graph_objects as go
+
+def plot_distributions(dist):
+    mean = np.array([np.mean(x) for x in dist])
+    std = np.array([np.std(x) for x in dist])
+    min = np.array([np.min(x) for x in dist])
+    max = np.array([np.max(x) for x in dist])
+    x = [float(list(models)[i][5:7]) for i in range(len(models))]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=x, y=max,
+                                        mode='lines',
+                                        line=dict(color='#FFAAAA',width =0.1),
+                                        name='max'))
+
+    fig.add_trace(go.Scatter(x=x, y=mean+std,
+                                        mode='lines',
+                                        line=dict(color='#FFAAAA',width =0.1),
+                                        fill='tonexty',
+                                        name='upper bound'))
+
+    fig.add_trace(go.Scatter(x=x, y=mean,
+                            mode='lines',
+                            line=dict(color='#FF0000'),
+                            fill='tonexty',
+                            name='mean'))
+
+    fig.add_trace(go.Scatter(x=x, y=mean-std,
+                            mode='lines',
+                            line=dict(color='#FF0000', width =0.1),
+                            fill='tonexty',
+                            name='lower bound'))
+
+
+    fig.add_trace(go.Scatter(x=x, y=min,
+                            mode='lines',
+                            line=dict(color='#FFAAAA', width =0.1),
+                            fill='tonexty',
+                            name='min'))
+
+
+    #fig.update_layout(xaxis_showgrid=False, xaxis_zeroline=False)
+    # fig.update_layout(title='Latent Distribution Mean', xaxis_title="Latent Distribution Mean",
+    #     yaxis_title="Epoch")
+    fig.update_layout(title='HNP Latent Distribution', yaxis_title="Latent Distribution Standard Deviation",
+        xaxis_title="Epoch")
+    fig.update_layout(
+        #showlegend=False,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="right",
+            x=0.99
+        ),
+        width=400,
+        height=300,
+        margin=dict(l=20, r=20, t=30, b=20),
+    )
+
+    fig.show()
+
+plot_distributions(prior_mus)
+#plot_distributions(prior_sigmas)
 
 #%%
 

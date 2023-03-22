@@ -120,7 +120,6 @@ class PlotCallback(tfk.callbacks.Callback):
     def __init__(self, logdir, ds, task):
         super(PlotCallback, self).__init__()
         self.ds = iter(ds)
-        logdir += '/plots'
         self.file_writer = tf.summary.create_file_writer(logdir=logdir)
         self.plot_fn = plot_image if task == 'mnist' else plot_regression
         self.test_ds = ds
@@ -141,4 +140,4 @@ class PlotCallback(tfk.callbacks.Callback):
         fig.suptitle(f'loss {logs["loss"]:.5f}')
         img = plot_to_image(fig)
         with self.file_writer.as_default():
-            tf.summary.image(name="CNP image completion", data=img, step=epoch)
+            tf.summary.image(name=f"{self.model.name} Test Sample", data=img, step=epoch)

@@ -1,0 +1,118 @@
+import os
+os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
+import os
+import argparse
+from datetime import datetime
+from tqdm import tqdm
+import tensorflow as tf
+import tensorflow_probability as tfp
+#tf.config.set_visible_devices([], 'GPU')
+import sys
+sys.path.append('example-cnp/')
+from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
+from dataloader.load_mnist import load_mnist
+from dataloader.load_celeb import load_celeb
+from nueral_process_model_conditional import NeuralProcessConditional
+from neural_process_model_hybrid import NeuralProcessHybrid
+from neural_process_model_latent import NeuralProcessLatent
+from neural_process_model_hybrid_constrained import NeuralProcessHybridConstrained
+from utils.utility import PlotCallback
+
+tfk = tf.keras
+tfd = tfp.distributions
+
+# Parse arguments
+# parser = argparse.ArgumentParser()
+# parser.add_argument('-e', '--epochs', type=int, default=120, help='Number of training epochs')
+# parser.add_argument('-b', '--batch', type=int, default=1024, help='Batch size for training')
+# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression)')
+# parser.add_argument('-c', '--num_context', type=int, default=100)
+# parser.add_argument('-u', '--uniform_sampling', type=bool, default=True)
+# args = parser.parse_args()
+
+
+
+
+
+
+
+# ================================ Training parameters ===============================================
+
+# Regression
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
+
+# MNIST / Celeb
+#args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
+
+
+
+# -------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+def load_model(args, model_path=None):
+    # =========================== Data Loaders ===========================================================================================
+    BATCH_SIZE = args.batch
+    EPOCHS = args.epochs
+    TRAINING_ITERATIONS = int(100)
+    TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
+    if args.task == 'mnist':
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
+
+        # Model architecture
+        z_output_sizes = [500, 500, 500, 1000]
+        enc_output_sizes = [500, 500, 500, 500]
+        dec_output_sizes = [500, 500, 500, 2]
+
+
+    elif args.task == 'regression':
+        data_generator = RegressionDataGeneratorArbitraryGP(
+            iterations=TRAINING_ITERATIONS,
+            n_iterations_test=TEST_ITERATIONS,
+            batch_size=BATCH_SIZE,
+            min_num_context=3,
+            max_num_context=40,
+            min_num_target=2,
+            max_num_target=40,
+            min_x_val_uniform=-2,
+            max_x_val_uniform=2,
+            kernel_length_scale=0.4
+        )
+        train_ds, test_ds = data_generator.load_regression_data()
+
+        # Model architecture
+        z_output_sizes = [500, 500, 500, 1000]
+        enc_output_sizes = [500, 500, 500, 500]
+        dec_output_sizes = [500, 500, 500, 2]    
+
+
+    elif args.task == 'celeb':
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
+
+        # Model architecture
+        z_output_sizes = [500, 500, 500, 1000]
+        enc_output_sizes = [500, 500, 500, 500]
+        dec_output_sizes = [500, 500, 500, 6]
+
+    # --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+    # ========================================== Define NP Model ===================================================
+    if args.model == 'CNP':
+        model = NeuralProcessConditional(enc_output_sizes, dec_output_sizes)
+    elif args.model == 'HNP':
+        model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    elif args.model == 'LNP':
+        model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    elif args.model == 'HNPC':
+        model = NeuralProcessHybridConstrained(z_output_sizes, enc_output_sizes, dec_output_sizes)
+
+    if model_path is not None:
+        model.load_weights(model_path)
+    
+    return model, train_ds, test_ds
