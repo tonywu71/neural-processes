@@ -1,80 +1,22 @@
 #%%
 import os
 os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
-import argparse
-from datetime import datetime
-
-import tensorflow as tf
-tf.config.set_visible_devices([], 'GPU')
-import tensorflow_probability as tfp
+from utils.load_model import *
 
 
-from dataloader.load_mnist import load_mnist, split_load_mnist
-from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import NeuralProcessConditional
-from utils.utility import PlotCallback
-import matplotlib.pyplot as plt
-import numpy as np
+# ================================ Training parameters ===============================================
 
-tfk = tf.keras
-tfd = tfp.distributions
+# Regression
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='HNPC')
+model, train_ds, test_ds = load_model(args)
 
-# # Parse arguments
-# parser = argparse.ArgumentParser()
-# parser.add_argument('-e', '--epochs', type=int, default=15, help='Number of training epochs')
-# parser.add_argument('-b', '--batch', type=int, default=64, help='Batch size for training')
-# parser.add_argument('-t', '--task', type=str, default='mnist', help='Task to perform : (mnist|regression)')
+pth = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0080.ckpt"
 
-# args = parser.parse_args()
-
-
-
-args = argparse.Namespace(epochs=15, batch=64, task='mnist', num_context=10, uniform_sampling=True)
-
-# Training parameters
-BATCH_SIZE = args.batch
-EPOCHS = args.epochs
-
-
-if args.task == 'mnist':
-    encoder_dims = [500, 500, 500, 500]
-    decoder_dims = [500, 500, 500, 2]
-
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
-
-elif args.task == 'regression':
-
-    # Model architecture
-    encoder_dims = [128, 128, 128, 128]
-    decoder_dims = [128, 128, 2]
-
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
-
-elif args.task == 'celeb':
-    # Model architecture
-    encoder_dims = [500, 500, 500, 500]
-    decoder_dims = [500, 500, 500, 2]
-
-    def loss(target_y, pred_y):
-        # Get the distribution
-        mu, sigma = tf.split(pred_y, num_or_size_splits=2, axis=-1)
-        dist = tfd.MultivariateNormalDiag(loc=mu, scale_diag=sigma)
-        return -dist.log_prob(target_y)
-    
-model = NeuralProcessConditional(encoder_dims, decoder_dims)
-#model.compile(loss=loss, optimizer='adam')
+model.load_weights(pth)
 
 #%%
 
-#
+BATCH_SIZE = 1
 
 
 fig, axs = plt.subplots(3, 4, figsize=(10, 5))
@@ -83,12 +25,12 @@ for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
 
     #model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
     #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
-    model = NeuralProcessConditional(encoder_dims, decoder_dims)
+
     #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
     
 
     if args.task == 'celeb':
-        model.load_weights(f'.data/CNP2_model_celeb_context_{num_context}_uniform_sampling_True/cp-0010.ckpt')
+        
         train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=num_context, uniform_sampling=args.uniform_sampling)
         img_size=32
 

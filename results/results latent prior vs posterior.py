@@ -1,124 +1,26 @@
 #%%
 import os
-os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
-import os
-import argparse
-from datetime import datetime
-from tqdm import tqdm
-import tensorflow as tf
-import tensorflow_probability as tfp
-#tf.config.set_visible_devices([], 'GPU')
-import sys
-sys.path.append('example-cnp/')
-from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
-from dataloader.load_mnist import load_mnist
-from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import NeuralProcessConditional
-from neural_process_model_hybrid import NeuralProcessHybrid
-from neural_process_model_latent import NeuralProcessLatent
-from neural_process_model_hybrid_constrained import NeuralProcessHybridConstrained
-from utils.utility import PlotCallback
-
-tfk = tf.keras
-tfd = tfp.distributions
-
-# Parse arguments
-# parser = argparse.ArgumentParser()
-# parser.add_argument('-e', '--epochs', type=int, default=120, help='Number of training epochs')
-# parser.add_argument('-b', '--batch', type=int, default=1024, help='Batch size for training')
-# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression)')
-# parser.add_argument('-c', '--num_context', type=int, default=100)
-# parser.add_argument('-u', '--uniform_sampling', type=bool, default=True)
-# args = parser.parse_args()
-
-
-
-
-
+os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
+from utils.load_model import *
 
 
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='HNPC')
+model, train_ds, test_ds = load_model(args)
 
-# MNIST / Celeb
-#args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
-
-LOG_PRIORS = True
-
-# -------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-# =========================== Data Loaders ===========================================================================================
-BATCH_SIZE = args.batch
-EPOCHS = args.epochs
-TRAINING_ITERATIONS = int(100)
-TEST_ITERATIONS = int(TRAINING_ITERATIONS/5)
-if args.task == 'mnist':
-    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_mnist(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
-
-    # Model architecture
-    z_output_sizes = [500, 500, 500, 1000]
-    enc_output_sizes = [500, 500, 500, 500]
-    dec_output_sizes = [500, 500, 500, 2]
-
-
-elif args.task == 'regression':
-    data_generator = RegressionDataGeneratorArbitraryGP(
-        iterations=TRAINING_ITERATIONS,
-        n_iterations_test=TEST_ITERATIONS,
-        batch_size=BATCH_SIZE,
-        min_num_context=3,
-        max_num_context=40,
-        min_num_target=2,
-        max_num_target=40,
-        min_x_val_uniform=-2,
-        max_x_val_uniform=2,
-        kernel_length_scale=0.4
-    )
-    train_ds, test_ds = data_generator.load_regression_data()
-
-    # Model architecture
-    z_output_sizes = [500, 500, 500, 1000]
-    enc_output_sizes = [500, 500, 500, 500]
-    dec_output_sizes = [500, 500, 500, 2]    
-
-
-elif args.task == 'celeb':
-    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
-
-    # Model architecture
-    z_output_sizes = [500, 500, 500, 1000]
-    enc_output_sizes = [500, 500, 500, 500]
-    dec_output_sizes = [500, 500, 500, 6]
-
-# --------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
-# ========================================== Define NP Model ===================================================
 if args.model == 'CNP':
-    model = NeuralProcessConditional(enc_output_sizes, dec_output_sizes)
+    pass
 elif args.model == 'HNP':
-    model = NeuralProcessHybrid(z_output_sizes, enc_output_sizes, dec_output_sizes)
     pth = '.data/HNP_model_regression_context_25_uniform_sampling_True/'
 elif args.model == 'LNP':
-    model = NeuralProcessLatent(z_output_sizes, enc_output_sizes, dec_output_sizes)
     pth = '.data/LNP_model_regression_context_25_uniform_sampling_True/'
 elif args.model == 'HNPC':
-    model = NeuralProcessHybridConstrained(z_output_sizes, enc_output_sizes, dec_output_sizes)
+    pth = '.data/HNPC_model_regression_context_25_uniform_sampling_True/'
+
 
 #%%
-
-
-
 
 models = os.listdir(pth)
 models = set([m[:12] for m in models if '.data' in m])
@@ -158,16 +60,16 @@ for name in models:
 import numpy as np
 import plotly.graph_objects as go
 
-def plot_distributions(dist):
+def plot_distributions(dist, name=""):
     mean = np.array([np.mean(x) for x in dist])
     std = np.array([np.std(x) for x in dist])
-    min = np.array([np.min(x) for x in dist])
-    max = np.array([np.max(x) for x in dist])
-    x = [float(list(models)[i][5:7]) for i in range(len(models))]
+    dmin = np.array([np.min(x) for x in dist])
+    dmax = np.array([np.max(x) for x in dist])
+    x = [float(list(models)[i][4:7]) for i in range(len(models))]
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=x, y=max,
+    fig.add_trace(go.Scatter(x=x, y=dmax,
                                         mode='lines',
                                         line=dict(color='#FFAAAA',width =0.1),
                                         name='max'))
@@ -191,7 +93,7 @@ def plot_distributions(dist):
                             name='lower bound'))
 
 
-    fig.add_trace(go.Scatter(x=x, y=min,
+    fig.add_trace(go.Scatter(x=x, y=dmin,
                             mode='lines',
                             line=dict(color='#FFAAAA', width =0.1),
                             fill='tonexty',
@@ -201,7 +103,7 @@ def plot_distributions(dist):
     #fig.update_layout(xaxis_showgrid=False, xaxis_zeroline=False)
     # fig.update_layout(title='Latent Distribution Mean', xaxis_title="Latent Distribution Mean",
     #     yaxis_title="Epoch")
-    fig.update_layout(title='HNP Latent Distribution', yaxis_title="Latent Distribution Standard Deviation",
+    fig.update_layout(title=f'{args.model} Latent Distribution', yaxis_title=f"Latent Distribution {name}",
         xaxis_title="Epoch")
     fig.update_layout(
         #showlegend=False,
@@ -211,6 +113,12 @@ def plot_distributions(dist):
             xanchor="right",
             x=0.99
         ),
+        # legend=dict(
+        #     yanchor="top",
+        #     y=0.99,
+        #     xanchor="left",
+        #     x=0.01
+        # ),
         width=400,
         height=300,
         margin=dict(l=20, r=20, t=30, b=20),
@@ -218,8 +126,8 @@ def plot_distributions(dist):
 
     fig.show()
 
-plot_distributions(prior_mus)
-#plot_distributions(prior_sigmas)
+#plot_distributions(prior_mus, "Mean")
+plot_distributions(prior_sigmas, "Standard Deviation")
 
 #%%
 

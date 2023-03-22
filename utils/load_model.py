@@ -1,14 +1,10 @@
 import os
-os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
-import os
 import argparse
 from datetime import datetime
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
 #tf.config.set_visible_devices([], 'GPU')
-import sys
-sys.path.append('example-cnp/')
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
