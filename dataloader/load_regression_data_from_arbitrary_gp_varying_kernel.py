@@ -133,7 +133,7 @@ class RegressionDataGeneratorArbitraryGPWithVaryingKernel(RegressionDataGenerato
                        testing=testing)
 
 
-def draw_single_example_from_arbitrary_gp(
+def draw_single_example_from_arbitrary_gp_varying_kernel(
         kernel_length_scale: float,
         num_context: int,
         num_target: int,
