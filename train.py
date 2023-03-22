@@ -9,6 +9,7 @@ import tensorflow_probability as tfp
 import sys
 sys.path.append('example-cnp/')
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
+from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import RegressionDataGeneratorArbitraryGPWithVaryingKernel
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
 from nueral_process_model_conditional import NeuralProcessConditional
@@ -38,7 +39,7 @@ tfd = tfp.distributions
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='HNPC')
+args = argparse.Namespace(epochs=80, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
 
 # MNIST / Celeb
 #args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
@@ -65,6 +66,13 @@ if args.task == 'mnist':
     enc_output_sizes = [500, 500, 500, 500]
     dec_output_sizes = [500, 500, 500, 2]
 
+elif args.task == 'celeb':
+    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
+
+    # Model architecture
+    z_output_sizes = [500, 500, 500, 1000]
+    enc_output_sizes = [500, 500, 500, 500]
+    dec_output_sizes = [500, 500, 500, 6]
 
 elif args.task == 'regression':
     data_generator = RegressionDataGeneratorArbitraryGP(
@@ -86,14 +94,29 @@ elif args.task == 'regression':
     enc_output_sizes = [500, 500, 500, 500]
     dec_output_sizes = [500, 500, 500, 2]    
 
-
-elif args.task == 'celeb':
-    train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
-
+elif args.task == 'regression_varying':
+    data_generator = RegressionDataGeneratorArbitraryGPWithVaryingKernel(
+        iterations=TRAINING_ITERATIONS,
+        n_iterations_test=TEST_ITERATIONS,
+        batch_size=BATCH_SIZE,
+        min_num_context=3,
+        max_num_context=40,
+        min_num_target=2,
+        max_num_target=40,
+        min_x_val_uniform=-2,
+        max_x_val_uniform=2,
+        min_kernel_length_scale=0.1,
+        max_kernel_length_scale=1.
+    )
     # Model architecture
     z_output_sizes = [500, 500, 500, 1000]
     enc_output_sizes = [500, 500, 500, 500]
-    dec_output_sizes = [500, 500, 500, 6]
+    dec_output_sizes = [500, 500, 500, 2]
+
+    train_ds, test_ds = data_generator.train_ds, data_generator.test_ds
+    
+
+
 
 # --------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -149,9 +172,8 @@ def train_step(model, x, optimizer):
 
 # ============================ Training Loop ===========================================================
 epochs = args.epochs
-epochs=120
 
-for epoch in range(81, epochs + 1):
+for epoch in range(1, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 

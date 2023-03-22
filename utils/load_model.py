@@ -7,6 +7,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 #tf.config.set_visible_devices([], 'GPU')
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
+from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import RegressionDataGeneratorArbitraryGPWithVaryingKernel
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
 from nueral_process_model_conditional import NeuralProcessConditional
@@ -62,7 +63,14 @@ def load_model(args, model_path=None):
         z_output_sizes = [500, 500, 500, 1000]
         enc_output_sizes = [500, 500, 500, 500]
         dec_output_sizes = [500, 500, 500, 2]
+    
+    elif args.task == 'celeb':
+        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
 
+        # Model architecture
+        z_output_sizes = [500, 500, 500, 1000]
+        enc_output_sizes = [500, 500, 500, 500]
+        dec_output_sizes = [500, 500, 500, 6]
 
     elif args.task == 'regression':
         data_generator = RegressionDataGeneratorArbitraryGP(
@@ -84,14 +92,27 @@ def load_model(args, model_path=None):
         enc_output_sizes = [500, 500, 500, 500]
         dec_output_sizes = [500, 500, 500, 2]    
 
-
-    elif args.task == 'celeb':
-        train_ds, test_ds, TRAINING_ITERATIONS, TEST_ITERATIONS = load_celeb(batch_size=BATCH_SIZE, num_context_points=args.num_context, uniform_sampling=args.uniform_sampling)
-
+    elif args.task == 'regression_varying':
+        data_generator = RegressionDataGeneratorArbitraryGPWithVaryingKernel(
+            iterations=TRAINING_ITERATIONS,
+            n_iterations_test=TEST_ITERATIONS,
+            batch_size=BATCH_SIZE,
+            min_num_context=3,
+            max_num_context=40,
+            min_num_target=2,
+            max_num_target=40,
+            min_x_val_uniform=-2,
+            max_x_val_uniform=2,
+            min_kernel_length_scale=0.1,
+            max_kernel_length_scale=1.
+        )
         # Model architecture
         z_output_sizes = [500, 500, 500, 1000]
         enc_output_sizes = [500, 500, 500, 500]
-        dec_output_sizes = [500, 500, 500, 6]
+        dec_output_sizes = [500, 500, 500, 2]
+
+        train_ds, test_ds = data_generator.train_ds, data_generator.test_ds
+    
 
     # --------------------------------------------------------------------------------------------------------------------------------------------
 

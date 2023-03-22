@@ -80,19 +80,21 @@ def load_mnist(batch_size: int=32, num_context_points=None, uniform_sampling = T
     return train_ds, test_ds, int(60000/batch_size), int(10000/batch_size)
 
 
-prev_image = tf.zeros((28, 28, 1))
+
 def split_load_mnist(num_context_points=10):
     mnist = tfds.load('mnist')  # Note: By default, autocaching is enabled on MNIST
     train_ds, test_ds = mnist['train'], mnist['test']
+    
+    class GlobalClass:
+        prev_image = tf.zeros((28, 28, 1))
 
     def encode(element, num_context_points=10, uniform_sampling=True):
         # element should be already batched
         img = tf.cast(element['image'], tf.float32) / 255. # normalise pixels within [0,1] range
-        global prev_image
-        new_img = tf.concat((img[:, :14, :], prev_image[:, 14:, :]), axis=1)
-        L = prev_image
+        new_img = tf.concat((img[:, :14, :], GlobalClass.prev_image[:, 14:, :]), axis=1)
+        L = GlobalClass.prev_image
         R = img
-        prev_image = img
+        GlobalClass.prev_image = img
 
         new_img = tf.expand_dims(new_img, 0)
         img = new_img
