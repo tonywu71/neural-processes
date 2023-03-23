@@ -13,7 +13,7 @@ import tensorflow_probability as tfp
 tfd = tfp.distributions
 
 from neural_process_model_latent import NeuralProcessLatent
-from nueral_process_model_conditional import NeuralProcessConditional
+from neural_process_model_conditional import NeuralProcessConditional
 
 import matplotlib.pyplot as plt
 

@@ -5,7 +5,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import tensorflow_probability as tfp
 
-from nueral_process_model_conditional import NeuralProcessConditional
+from neural_process_model_conditional import NeuralProcessConditional
 from utils import PlotCallback, get_gp_curve_generator
 
 tfk = tf.keras
