@@ -34,13 +34,15 @@ We will investigate Conditional Neural Processes (CNPs) and Latent Neural Proces
    python train.py --task regression --model cnp --epochs 50 --batch 128
    ```
 
+3. The model will be saved in the `checkpoints` directory.
+
 
 
 ## 2. Data pipeline
 
 ![data_pipeline](figs/2-data_pipeline/data_pipeline.png)
 
-
+<p align = "center"> <b>Figure 2: Data pipeline and examples of generated data for Neural Processes</b></p>
 
 Contrarily to neural networks which predict functions, NPs predict **distributions** of functions. For this reason, we have built a specific data loader class using the `tf.data` API to produce the examples for both training and validation. Note that the class definitions for data generators can be found in the `dataloader` module directory.
 
@@ -50,7 +52,7 @@ Contrarily to neural networks which predict functions, NPs predict **distributio
 
 ![architecture](figs/3-models/architecture.png)
 
-<p align = "center"> <b>Figure 2: Architecture diagram of CNP, LNP, and HNP</b></p>
+<p align = "center"> <b>Figure 3: Architecture diagram of CNP, LNP, and HNP</b></p>
 
 CNP, LNP and HNP all have a similar encoder-decoder architecture. They have been implemented using classes that inherit from `tf.keras.Model`. Thus, training with the `tf.data` API is straightforward and optimized.
 
@@ -68,6 +70,8 @@ python train.py --task regression
 
 ![1d_regression-fixed_kernel](figs/4-experiments/1d_regression-fixed_kernel.jpeg)
 
+<p align = "center"> <b>Figure 4: Comparison between GP, CNP and LNP on the 1D-regression task (fixed kernel parameter)</b></p>
+
 
 
 ### 4.2. MNIST training
@@ -79,6 +83,8 @@ python train.py --task mnist
 **Example of obtained result:**
 
 ![mnist-image_completion](figs/4-experiments/mnist-image_completion.png)
+
+<p align = "center"> <b>Figure 5: : CNP pixel mean and variance predictions on images from MNIST</b></p>
 
 
 
@@ -93,6 +99,8 @@ python train.py --task celeb
 **Example of obtained result:**
 
 ![celebA-image_completion](figs/4-experiments/celebA-image_completion.jpg)
+
+<p align = "center"> <b>Figure 6: : CNP pixel mean and variance predictions on images from CelebA</b></p>
 
 
 
