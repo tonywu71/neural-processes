@@ -1,4 +1,4 @@
-# Conditional Neural Processes
+# Neural Processes
 Replication of the *Conditional Neural Processes* paper by Marta Garnelo et al. Conditional Neural Processes, 2018 [[arXiv](https://arxiv.org/abs/1807.01613)] and the *Latent Neural Processes Paper* by Marta Garnelo et al. Neural Processes, 2018 [[arXiv](https://arxiv.org/abs/1807.01622)]. The model and data pipeline were implemented using Tensorflow 2.10.
 
 
