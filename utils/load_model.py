@@ -19,33 +19,6 @@ from utils.utility import PlotCallback
 tfk = tf.keras
 tfd = tfp.distributions
 
-# Parse arguments
-# parser = argparse.ArgumentParser()
-# parser.add_argument('-e', '--epochs', type=int, default=120, help='Number of training epochs')
-# parser.add_argument('-b', '--batch', type=int, default=1024, help='Batch size for training')
-# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression)')
-# parser.add_argument('-c', '--num_context', type=int, default=100)
-# parser.add_argument('-u', '--uniform_sampling', type=bool, default=True)
-# args = parser.parse_args()
-
-
-
-
-
-
-
-# ================================ Training parameters ===============================================
-
-# Regression
-args = argparse.Namespace(epochs=60, batch=1024, task='regression', num_context=1000, uniform_sampling=True, model='LNP')
-
-# MNIST / Celeb
-#args = argparse.Namespace(epochs=30, batch=256, task='celeb', num_context=100, uniform_sampling=True, model='CNP')
-
-
-
-# -------------------------------------------------------------------------------------------------------------------------
-
 
 
 
