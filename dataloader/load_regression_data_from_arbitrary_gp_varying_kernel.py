@@ -70,7 +70,7 @@ def gen_from_arbitrary_gp(
         kernel_1 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l1)
         kernel_2 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l2)
         
-        n_samples_1 = tf.random.uniform(shape=[], minval=1, maxval=num_total_points, dtype=tf.int32)  # both splits will have at least one sample
+        n_samples_1 = tf.random.uniform(shape=[], minval=2, maxval=num_total_points-1, dtype=tf.int32)  # both splits will have at least one sample
         
         # Sort x_values:
         x_values = tf.sort(x_values, axis=1)
