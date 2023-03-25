@@ -173,7 +173,7 @@ def train_step(model, x, optimizer):
 # ============================ Training Loop ===========================================================
 epochs = args.epochs
 epochs = 160
-for epoch in range(81, epochs + 1):
+for epoch in range(1, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 
