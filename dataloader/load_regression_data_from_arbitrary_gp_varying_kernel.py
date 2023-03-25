@@ -85,19 +85,15 @@ def gen_from_arbitrary_gp(
         
         gp_2 = tfd.GaussianProcess(kernel_2, index_points=x_values_2, jitter=1.0e-4)
         
-        list_y_values_2 = []
-        for idx_batch in range(batch_size):
-            gp_2 = tfd.GaussianProcessRegressionModel(
-                kernel=kernel_2,
-                index_points=x_values_2[idx_batch],
-                observation_index_points=x_values_1[idx_batch, -1:, :],
-                observations=y_values_1[idx_batch, -1:, :],
-                observation_noise_variance=1.0e-4)
-            list_y_values_2.append(tf.expand_dims(gp_2.sample(), axis=-1))
+        gp_2 = tfd.GaussianProcessRegressionModel(
+            kernel=kernel_2,
+            index_points=x_values_2[:],
+            observation_index_points=x_values_1[:, -1:, :],
+            observations=y_values_1[:, -1:, 0],
+            observation_noise_variance=1.0e-4)
         
-        y_values_2 = tf.concat(list_y_values_2, axis=0)
-            
-        
+        y_values_2 = tf.expand_dims(gp_2.sample(), axis=-1)
+                
         y_values = tf.concat([y_values_1, y_values_2], axis=1)
         
         idx = tf.random.shuffle(tf.range(num_total_points))
