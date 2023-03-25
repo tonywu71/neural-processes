@@ -31,6 +31,14 @@ def gen_from_arbitrary_gp(
     """
     
     for _ in range(iterations):
+        # Set kernel length scale:
+        kernel_length_scale = tf.random.uniform(shape=[],
+                                                minval=min_kernel_length_scale,  # type: ignore
+                                                maxval=max_kernel_length_scale,
+                                                dtype=tf.dtypes.float32)
+        kernel = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=kernel_length_scale)
+        
+        
         # NB: The distribution of y_values is the same for each iteration (i.e. the the one defined by
         #     the arbitrary GP) but the sampled x_values do differ (in terms of size and values).
         num_context = tf.random.uniform(shape=[],
@@ -50,58 +58,18 @@ def gen_from_arbitrary_gp(
         num_total_points = num_context + num_target
         
         x_values = tf.random.uniform(shape=(batch_size, num_total_points, 1),
-                                     minval=min_x_val_uniform,  # type: ignore
+                                     minval=min_x_val_uniform,
                                      maxval=max_x_val_uniform)
         
-        
-        # Set kernel length scale:
-        l1 = tf.random.uniform(shape=[],
-                               minval=min_kernel_length_scale,  # type: ignore
-                               maxval=max_kernel_length_scale,
-                               dtype=tf.dtypes.float32)
-        
-        l2 = tf.random.uniform(shape=[],
-                               minval=min_kernel_length_scale,  # type: ignore
-                               maxval=max_kernel_length_scale,
-                               dtype=tf.dtypes.float32)
-        
-        
-        # Varying kernel:
-        kernel_1 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l1)
-        kernel_2 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l2)
-        
-        n_samples_1 = tf.random.uniform(shape=[], minval=2, maxval=num_total_points-1, dtype=tf.int32)  # both splits will have at least one sample
-        
-        # Sort x_values:
-        x_values = tf.sort(x_values, axis=1)
-        
-        # Split x_values into two parts such that the first part has n_samples_1 points:
-        x_values_1 = x_values[:, :n_samples_1, :]
-        x_values_2 = x_values[:, n_samples_1:, :]
-        
-        
-        gp_1 = tfd.GaussianProcess(kernel_1, index_points=x_values_1, jitter=1.0e-4)
-        y_values_1 = tf.expand_dims(gp_1.sample(), axis=-1)
-        
-        gp_2 = tfd.GaussianProcess(kernel_2, index_points=x_values_2, jitter=1.0e-4)
-        
-        gp_2 = tfd.GaussianProcessRegressionModel(
-            kernel=kernel_2,
-            index_points=x_values_2[:],
-            observation_index_points=x_values_1[:, -1:, :],
-            observations=y_values_1[:, -1:, 0],
-            observation_noise_variance=1.0e-4)
-        
-        y_values_2 = tf.expand_dims(gp_2.sample(), axis=-1)
-                
-        y_values = tf.concat([y_values_1, y_values_2], axis=1)
+        gp = tfd.GaussianProcess(kernel, index_points=x_values, jitter=1.0e-4)
+        y_values = tf.expand_dims(gp.sample(), axis=-1)
         
         idx = tf.random.shuffle(tf.range(num_total_points))
         
         # Select the targets which will consist of the context points
         # as well as some new target points
         target_x = x_values[:, :, :]
-        target_y = y_values[:, :, :]  # type: ignore
+        target_y = y_values[:, :, :]
 
         # Select the observations
         context_x = tf.gather(x_values, indices=idx[:num_context], axis=1)
@@ -117,7 +85,7 @@ def gen_from_arbitrary_gp(
         yield (context_x, context_y, target_x), target_y
 
 
-class RegressionDataGeneratorArbitraryGPWithVaryingKernel(RegressionDataGeneratorBase):
+class RegressionDataGeneratorArbitraryMultipleGPs(RegressionDataGeneratorBase):
     """Class that generates a batch of data for regression based on
     the original Conditional Neural Processes paper."""
     def __init__(self,
