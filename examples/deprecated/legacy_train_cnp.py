@@ -10,7 +10,7 @@ import tensorflow_probability as tfp
 from dataloader.load_regression_data_from_arbitrary_gp import RegressionDataGeneratorArbitraryGP
 from dataloader.load_mnist import load_mnist
 from dataloader.load_celeb import load_celeb
-from nueral_process_model_conditional import NeuralProcessConditional
+from neural_process_model_conditional import NeuralProcessConditional
 from utils.utility import PlotCallback
 
 tfk = tf.keras
