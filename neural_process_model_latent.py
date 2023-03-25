@@ -123,6 +123,7 @@ class NeuralProcessLatent(tfk.Model):
         prior = self.z_encoder_latent(context)
         posterior = self.z_encoder_latent(target_context)
 
+        # Posterior is the true distribution, Prior distribution is the predicted distribution
         kl = tfp.distributions.kl_divergence(prior, posterior)
         kl = tf.reduce_sum(kl)
 
