@@ -71,13 +71,20 @@ def gen_from_arbitrary_gp(
         kernel_2 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l2)
         
         n_samples_1 = tf.random.uniform(shape=[], minval=0, maxval=num_total_points+1, dtype=tf.int32)
-        x_values_1, x_values_2 = tf.split(x_values, num_or_size_splits=2, num=n_samples_1, axis=1)
+        
+        # Sort x_values:
+        x_values = tf.sort(x_values, axis=1)
+        
+        # Split x_values into two parts such that the first part has n_samples_1 points:
+        x_values_1 = x_values[:, :n_samples_1, :]
+        x_values_2 = x_values[:, n_samples_1:, :]
+        
         
         gp_1 = tfd.GaussianProcess(kernel_1, index_points=x_values_1, jitter=1.0e-4)
         y_values_1 = tf.expand_dims(gp_1.sample(), axis=-1)
         
-        gp_1 = tfd.GaussianProcess(kernel_2, index_points=x_values_2, jitter=1.0e-4)
-        y_values_2 = tf.expand_dims(gp_1.sample(), axis=-1)
+        gp_2 = tfd.GaussianProcess(kernel_2, index_points=x_values_2, jitter=1.0e-4)
+        y_values_2 = tf.expand_dims(gp_2.sample(), axis=-1)
         
         y_values = tf.concat([y_values_1, y_values_2], axis=1)
         
