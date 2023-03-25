@@ -70,7 +70,7 @@ def gen_from_arbitrary_gp(
         kernel_1 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l1)
         kernel_2 = tfp.math.psd_kernels.ExponentiatedQuadratic(length_scale=l2)
         
-        n_samples_1 = tf.random.uniform(shape=[], minval=0, maxval=num_total_points+1, dtype=tf.int32)
+        n_samples_1 = tf.random.uniform(shape=[], minval=1, maxval=num_total_points, dtype=tf.int32)  # both splits will have at least one sample
         
         # Sort x_values:
         x_values = tf.sort(x_values, axis=1)
@@ -84,7 +84,19 @@ def gen_from_arbitrary_gp(
         y_values_1 = tf.expand_dims(gp_1.sample(), axis=-1)
         
         gp_2 = tfd.GaussianProcess(kernel_2, index_points=x_values_2, jitter=1.0e-4)
-        y_values_2 = tf.expand_dims(gp_2.sample(), axis=-1)
+        
+        list_y_values_2 = []
+        for idx_batch in range(batch_size):
+            gp_2 = tfd.GaussianProcessRegressionModel(
+                kernel=kernel_2,
+                index_points=x_values_2[idx_batch],
+                observation_index_points=x_values_1[idx_batch, -1:, :],
+                observations=y_values_1[idx_batch, -1:, :],
+                observation_noise_variance=1.0e-4)
+            list_y_values_2.append(tf.expand_dims(gp_2.sample(), axis=-1))
+        
+        y_values_2 = tf.concat(list_y_values_2, axis=0)
+            
         
         y_values = tf.concat([y_values_1, y_values_2], axis=1)
         
