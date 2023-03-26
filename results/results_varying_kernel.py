@@ -8,10 +8,26 @@ from utils.gaussian_processes.gp_model import plot_mean_with_std
 from utils.gaussian_processes.plot_gp_utils import plot_preds_from_ds_test
 import numpy as np
 import matplotlib.pyplot as plt
-from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import draw_single_example_from_arbitrary_gp
+#from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import draw_single_example_from_arbitrary_gp
 from utils.gaussian_processes.plot_gp_utils import plot_preds_from_single_example
-
-
+from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import RegressionDataGeneratorArbitraryGPWithVaryingKernel
+#
+def draw_single_example_from_arbitrary_gp(kernel_length_scale, num_context, num_target):
+    data_generator = RegressionDataGeneratorArbitraryGPWithVaryingKernel(
+        iterations=1,
+        n_iterations_test=1,
+        batch_size=1,
+        min_num_context=num_context-1,
+        max_num_context=num_context,
+        min_num_target=num_target-1,
+        max_num_target=num_target,
+        min_x_val_uniform=-2,
+        max_x_val_uniform=2,
+        min_kernel_length_scale=kernel_length_scale,
+        max_kernel_length_scale=kernel_length_scale,
+    )
+    train_ds, test_ds = data_generator.load_regression_data()
+    return next(iter(test_ds))
 
 args = argparse.Namespace(epochs=60, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='CNP')
 model, train_ds, test_ds = load_model_and_dataset(args, ".data/CNP_model_regression_varying_context_25_uniform_sampling_True/")
@@ -20,6 +36,8 @@ lnp_model, _, _ = load_model_and_dataset(args, ".data/LNP_model_regression_varyi
 args = argparse.Namespace(epochs=60, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
 hnpc_model, _, _ = load_model_and_dataset(args, ".data/HNPC_model_regression_varying_context_25_uniform_sampling_True/")
 
+
+#%%
 
 # %%
 (context_x, context_y, target_x), target_y = next(iter(train_ds))

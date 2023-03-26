@@ -39,7 +39,7 @@ tfd = tfp.distributions
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=80, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='LNP')
+args = argparse.Namespace(epochs=160, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
 
 # MNIST / Celeb
 #args = argparse.Namespace(epochs=30, batch=256, task='mnist', num_context=100, uniform_sampling=True, model='HNPC')
@@ -172,8 +172,8 @@ def train_step(model, x, optimizer):
 
 # ============================ Training Loop ===========================================================
 epochs = args.epochs
-epochs = 160
-for epoch in range(1, epochs + 1):
+#epochs = 160
+for epoch in range(40, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 
