@@ -1,6 +1,7 @@
 #%%
 import os
-os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
+#os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
+os.chdir('/Users/wnbak/Documents/conditional-neural-processes/')
 from utils.load_model import *
 tf.config.set_visible_devices([], 'GPU') # Disable the GPU if present, we wont need it
 from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import RegressionDataGeneratorArbitraryGPWithVaryingKernel
@@ -27,7 +28,14 @@ def draw_single_example_from_arbitrary_gp(kernel_length_scale, num_context, num_
         max_kernel_length_scale=kernel_length_scale,
     )
     train_ds, test_ds = data_generator.load_regression_data()
-    return next(iter(test_ds))
+    (context_x, context_y, target_x), target_y  = next(iter(test_ds))
+    
+    context_x = tf.squeeze(context_x, axis=0)
+    context_y = tf.squeeze(context_y, axis=0)
+    target_x = tf.squeeze(target_x, axis=0)
+    target_y = tf.squeeze(target_y, axis=0)
+    
+    return (context_x, context_y, target_x), target_y 
 
 args = argparse.Namespace(epochs=60, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='CNP')
 model, train_ds, test_ds = load_model_and_dataset(args, ".data/CNP_model_regression_varying_context_25_uniform_sampling_True/")
@@ -38,6 +46,12 @@ hnpc_model, _, _ = load_model_and_dataset(args, ".data/HNPC_model_regression_var
 
 
 #%%
+
+# (context_x, context_y, target_x), target_y = draw_single_example_from_arbitrary_gp(
+#             kernel_length_scale=0.6,
+#             num_context=25,
+#             num_target=100
+#         )
 
 # %%
 (context_x, context_y, target_x), target_y = next(iter(train_ds))
