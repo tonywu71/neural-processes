@@ -22,7 +22,7 @@ hnpc_model, _, _ = load_model_and_dataset(args, ".data/HNPC_model_regression_var
 # %%
 list_num_context = [3, 8, 12, 16]
 
-fig, axis = plt.subplots(4, len(list_num_context),
+fig, axis = plt.subplots(3, len(list_num_context),
                          figsize=(3.5*len(list_num_context), 6),
                          sharex=True,
                          sharey=True)
@@ -49,46 +49,46 @@ for idx_plot, num_context in enumerate(list_num_context):
     
     # --- CNP ---
     plot_preds_from_single_example(model, context_x, context_y, target_x, target_y,
-                                   show_title=False, ax=axis[1, idx_plot])
+                                   show_title=False, ax=axis[0, idx_plot])
     
     
     # --- LNP ---
     plot_preds_from_single_example(lnp_model, context_x, context_y, target_x, target_y,
-                                   show_title=False, ax=axis[2, idx_plot])
+                                   show_title=False, ax=axis[1, idx_plot])
     
     # --- HNPC ---
     plot_preds_from_single_example(hnpc_model, context_x, context_y, target_x, target_y,
-                                   show_title=False, ax=axis[3, idx_plot])
+                                   show_title=False, ax=axis[2, idx_plot])
     
-    # --- GP ---
-    gp = tfd.GaussianProcessRegressionModel(
-                kernel=AVG_KERNEL,
-                index_points=target_x,
-                observation_index_points=context_x,
-                observations=tf.squeeze(context_y),
-                jitter=1.0e-4
-    )
+    # # --- GP ---
+    # gp = tfd.GaussianProcessRegressionModel(
+    #             kernel=AVG_KERNEL,
+    #             index_points=target_x,
+    #             observation_index_points=context_x,
+    #             observations=tf.squeeze(context_y),
+    #             jitter=1.0e-4
+    # )
 
-    context_x = tf.squeeze(context_x)
-    target_x = tf.squeeze(target_x)
-    gp_mean_predict = gp.mean()
-    gp_std_predict = gp.stddev()
+    # context_x = tf.squeeze(context_x)
+    # target_x = tf.squeeze(target_x)
+    # gp_mean_predict = gp.mean()
+    # gp_std_predict = gp.stddev()
     
-    idx_x_sorted = tf.argsort(target_x)
+    # idx_x_sorted = tf.argsort(target_x)
     
-    target_x = tf.gather(target_x, idx_x_sorted)
-    target_y = tf.gather(target_y, idx_x_sorted)
-    gp_mean_predict = tf.gather(gp_mean_predict, idx_x_sorted)
-    gp_std_predict = tf.gather(gp_std_predict, idx_x_sorted)
+    # target_x = tf.gather(target_x, idx_x_sorted)
+    # target_y = tf.gather(target_y, idx_x_sorted)
+    # gp_mean_predict = tf.gather(gp_mean_predict, idx_x_sorted)
+    # gp_std_predict = tf.gather(gp_std_predict, idx_x_sorted)
 
-    plot_mean_with_std(x=target_x.numpy(),
-                       mean=gp_mean_predict.numpy(),
-                       std=gp_std_predict.numpy(),
-                       y_true=target_y.numpy(),
-                       ax=axis[0, idx_plot]
-    )
+    # plot_mean_with_std(x=target_x.numpy(),
+    #                    mean=gp_mean_predict.numpy(),
+    #                    std=gp_std_predict.numpy(),
+    #                    y_true=target_y.numpy(),
+    #                    ax=axis[0, idx_plot]
+    # )
     
-    axis[0, idx_plot].scatter(context_x.numpy(), context_y.numpy())
+    # axis[0, idx_plot].scatter(context_x.numpy(), context_y.numpy())
 
 
 
@@ -100,14 +100,15 @@ for ax, label in zip(axis[0, :], list_labels):
 for ax in axis.flatten()[:-1]:
     ax.get_legend().remove()
     
-axis[0, 0].set_ylabel("GP", size=20)
-axis[1, 0].set_ylabel("CNP", size=20)
-axis[2, 0].set_ylabel("LNP", size=20)
-axis[3, 0].set_ylabel("HNPC", size=20)
+# axis[0, 0].set_ylabel("GP", size=20)
+# axis[1, 0].set_ylabel("CNP", size=20)
+# axis[2, 0].set_ylabel("LNP", size=20)
+# axis[3, 0].set_ylabel("HNPC", size=20)
     
+axis[0, 0].set_ylabel("CNP", size=20)
+axis[1, 0].set_ylabel("LNP", size=20)
+axis[2, 0].set_ylabel("HNPC", size=20)
+
 fig.tight_layout()
 
 # %%
-
-
-
