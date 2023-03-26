@@ -6,7 +6,7 @@ import tensorflow_probability as tfp
 
 tfd = tfp.distributions
 
-from dataloader.regression_data_generator_base import RegressionDataGeneratorBase
+from dataloader.dataloader_for_plotting.regression_data_generator_base import RegressionDataGeneratorBase
 
 
 def gen_from_arbitrary_gp(
