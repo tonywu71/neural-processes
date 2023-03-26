@@ -25,7 +25,7 @@ def draw_single_example_from_arbitrary_gp(kernel_length_scale, num_context, num_
         min_x_val_uniform=-2,
         max_x_val_uniform=2,
         min_kernel_length_scale=kernel_length_scale,
-        max_kernel_length_scale=kernel_length_scale,
+        max_kernel_length_scale=kernel_length_scale*2,
     )
     train_ds, test_ds = data_generator.load_regression_data()
     (context_x, context_y, target_x), target_y  = next(iter(test_ds))
