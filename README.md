@@ -1,5 +1,7 @@
 # Neural Processes
-Replication of the *Conditional Neural Processes* paper by Marta Garnelo et al. Conditional Neural Processes, 2018 [[arXiv](https://arxiv.org/abs/1807.01613)] and the *Neural Processes* paper by Marta Garnelo et al. Neural Processes, 2018 [[arXiv](https://arxiv.org/abs/1807.01622)]. The model and data pipeline were implemented using Tensorflow 2.10.
+Replication of the *Conditional Neural Processes* paper by Marta Garnelo et al., 2018 [[arXiv](https://arxiv.org/abs/1807.01613)] and the *Neural Processes* paper by Marta Garnelo et al, 2018 [[arXiv](https://arxiv.org/abs/1807.01622)]. The model and data pipeline were implemented using Tensorflow 2.10.
+
+Code released in complement of the [report](https://github.com/tonywu71/conditional-neural-processes/blob/b90eb9ecf18cebaa7bcae8dcbf0bc573f987b112/report/MLMI4_CNP_LNP_report.pdf) and the [poster](https://github.com/tonywu71/conditional-neural-processes/blob/b90eb9ecf18cebaa7bcae8dcbf0bc573f987b112/report/MLMI4_CNP_LNP_poster.pdf).
 
 
 
@@ -11,9 +13,9 @@ William Baker, Alexandra Shaw, Tony Wu
 
 ## 1. Introduction
 
-While neural networks excel at function approximation, Gaussian Processes (GPs) addresses different challenges such as continuous learning, uncertainty prediction and the ability to deal with data scarcity. Therefore, each model is only suited for a restricted spectrum of tasks that strongly depends on the nature of available data.
+While neural networks excel at function approximation, Gaussian Processes (GPs) address different challenges such as uncertainty prediction, continuous learning, and the ability to deal with data scarcity. Therefore, each model is only suited for a restricted spectrum of tasks that strongly depends on the nature of available data.
 
-We will investigate Conditional Neural Processes (CNPs) and Latent Neural Processes (LNPs). These 2 types of model are part of the Neural Processes family (NPs). NPs are based on the idea of treating functions as random variables and using a neural network to encode the distribution over functions. This allows for efficient inference and scalability to large datasets. The performance on these models will be evaluated on 1D-regression and image completion to demonstrate how they learn distributions over complex functions.
+Neural Processes use neural networks to encode distributions over functions to approximate the dis- tributions over functions given by stochastic processes like GPs. This allows for efficient inference and scalability to large datasets. The performance of these models will be evaluated on 1D-regression and image completion to demonstrate visually how they learn distributions over complex functions.
 
 
 
@@ -104,10 +106,24 @@ python train.py --task celeb
 
 ![celebA-image_completion](figs/4-experiments/celebA-image_completion.jpg)
 
-<p align = "center"> <b>Figure 6: : CNP pixel mean and variance predictions on images from CelebA</b></p>
+<p align = "center"> <b>Figure 6: CNP pixel mean and variance predictions on images from CelebA</b></p>
+
+
+
+### 4.4. Extension: HNP and HNPC
+
+**Objective:** Combine the deterministic link between the context representations (used by CNP) with the non-deterministic link from the latent space representation space (used by LNP) to produce a model with a richer embedding space.
+
+![extension-hnp_hnpc](figs/4-experiments/extension-hnp_hnpc.png)
+
+<p align = "center"> <b>Figure 7: Latent Variable Distribution - Mean and Standard Deviation Statistics during training.</b></p>
 
 
 
 ## 5. Appendix
 
 To go further, read the poster and the report that can be found in the `report` folder of this repository.
+
+<img src="report/poster-thumbnail.jpg" alt="poster-thumbnail" style="zoom: 33%;" />
+
+<p align = "center"> <b>Figure 8: Miniature of the CNP/LNP poster</b></p>
