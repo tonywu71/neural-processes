@@ -21,17 +21,18 @@ from utils.utility import PlotCallback
 tfk = tf.keras
 tfd = tfp.distributions
 
-# Parse arguments
+
+# ================================ Parse Training parameters ===============================================
 # parser = argparse.ArgumentParser()
 # parser.add_argument('-e', '--epochs', type=int, default=120, help='Number of training epochs')
 # parser.add_argument('-b', '--batch', type=int, default=1024, help='Batch size for training')
-# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression)')
+# parser.add_argument('-t', '--task', type=str, default='regression', help='Task to perform : (mnist|regression|celeb|regression_varying)')
 # parser.add_argument('-c', '--num_context', type=int, default=100)
 # parser.add_argument('-u', '--uniform_sampling', type=bool, default=True)
+# parser.add_argument('-m', '--model', type=bool, default='CNP', help='CNP|LNP|HNP|HNPC')
 # args = parser.parse_args()
 
-
-
+# -------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -39,10 +40,10 @@ tfd = tfp.distributions
 # ================================ Training parameters ===============================================
 
 # Regression
-args = argparse.Namespace(epochs=160, batch=1024, task='regression_varying', num_context=25, uniform_sampling=True, model='HNPC')
+args = argparse.Namespace(epochs=160, batch=1024, task='regression', num_context=25, uniform_sampling=True, model='CNP')
 
 # MNIST / Celeb
-#args = argparse.Namespace(epochs=30, batch=256, task='mnist', num_context=100, uniform_sampling=True, model='HNPC')
+#args = argparse.Namespace(epochs=30, batch=256, task='mnist', num_context=100, uniform_sampling=True, model='CNP')
 
 LOG_PRIORS = True
 
@@ -172,8 +173,7 @@ def train_step(model, x, optimizer):
 
 # ============================ Training Loop ===========================================================
 epochs = args.epochs
-#epochs = 160
-for epoch in range(40, epochs + 1):
+for epoch in range(1, epochs + 1):
     with tqdm(total=TRAINING_ITERATIONS, unit='batch') as tepoch:
         tepoch.set_description(f"Epoch {epoch}")
 

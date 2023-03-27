@@ -1,6 +1,8 @@
 #%%
-import os
-os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
+import os, sys
+pth = os.path.abspath(os.path.join(os.getcwd(), ".."))
+os.chdir(pth) # change to project directory
+sys.path.append(pth)
 from utils.load_model import *
 tf.config.set_visible_devices([], 'GPU') # Disable the GPU if present, we wont need it
 import matplotlib.pyplot as plt
@@ -13,7 +15,6 @@ args = argparse.Namespace(epochs=60, batch=64, task='mnist', num_context=100, un
 pth = f'.data/{args.model}_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/'# + "cp-0030.ckpt"
 model, train_ds, test_ds = load_model_and_dataset(args, pth)
 
-#model.load_weights(pth)
 
 #%%
 
@@ -24,11 +25,6 @@ fig, axs = plt.subplots(3, 4, figsize=(10, 5))
 #for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
 for i, num_context in enumerate([1,10,100,1000]):#([1,10,100,1000]):
 
-    #model.load_weights(f'trained_models/model_{args.task}_context_{num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0015.ckpt")
-    #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
-
-    #model.load_weights(f'.data/CNP2_model_{args.task}_context_{args.num_context}_uniform_sampling_{args.uniform_sampling}/' + "cp-0010.ckpt")
-    
 
     if args.task == 'celeb':
         

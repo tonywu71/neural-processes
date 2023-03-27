@@ -1,6 +1,5 @@
 #%%
 import os
-#os.chdir("c:Users/baker/Documents/MLMI4/conditional-neural-processes/")
 import argparse
 from datetime import datetime
 

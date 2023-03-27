@@ -1,6 +1,8 @@
 #%%
-import os
-os.chdir("/Users/baker/Documents/MLMI4/conditional-neural-processes/")
+import os, sys
+pth = os.path.abspath(os.path.join(os.getcwd(), ".."))
+os.chdir(pth) # change to project directory
+sys.path.append(pth)
 from utils.load_model import *
 tf.config.set_visible_devices([], 'GPU') # Disable the GPU if present, we wont need it
 from dataloader.load_regression_data_from_arbitrary_gp_varying_kernel import RegressionDataGeneratorArbitraryGPWithVaryingKernel

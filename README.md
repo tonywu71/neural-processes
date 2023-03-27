@@ -62,6 +62,7 @@ CNP, LNP and HNP all have a similar encoder-decoder architecture. They have been
 
 
 ## 4. Experiments
+Training can either be conducted in a interactive session (iPython) with arguments set in the section beginning ln 40 (Training parameters). Or by commenting section ln40 and uncommenting section ln 25 (Parse Training parameters) the terminal and it's cmd arguments can be used.
 
 ### 4.1. Regression training
 
